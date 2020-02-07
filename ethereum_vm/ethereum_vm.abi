@@ -1,0 +1,77 @@
+{
+   "version": "eosio::abi/1.0",
+   "types": [],
+  "structs": [
+    {
+      "name": "create",
+      "base": "",
+      "fields": [
+        {"name":"account", "type":"name"},
+        {"name":"text", "type":"string"},
+       ]
+    },{
+      "name": "activate",
+      "base": "",
+      "fields": [
+        {"name":"address", "type":"bytes"},
+       ]
+    },{
+      "name": "ethraw",
+      "base": "",
+      "fields": [
+        {"name":"trx", "type":"bytes"},
+        {"name":"sender", "type":"bytes"}
+       ]
+    },{
+      "name": "addrinfo",
+      "base": "",
+      "fields": [
+        {"name":"nonce", "type":"uint64"},
+        {"name":"balance", "type":"asset"},
+       ]
+    },{
+      "name": "getaddrinfo",
+      "base": "",
+      "fields": [
+        {"name":"address", "type":"bytes"}
+       ]
+    },{
+      "name": "withdraw",
+      "base": "",
+      "fields": [
+        {"name":"account", "type":"name"},
+        {"name":"amount", "type":"asset"}
+       ]
+    }
+  ],
+  "actions": [
+    {
+      "name": "create",
+      "type": "create",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "activate",
+      "type": "activate",
+      "ricardian_contract": ""
+    },{
+      "name": "raw",
+      "type": "ethraw",
+      "ricardian_contract": ""
+    },{
+      "name": "getaddrinfo",
+      "type": "getaddrinfo",
+      "ricardian_contract": ""
+    },{
+      "name": "addrinfo",
+      "type": "addrinfo",
+      "ricardian_contract": ""
+    },{
+      "name": "withdraw",
+      "type": "withdraw",
+      "ricardian_contract": ""
+    }
+  ],
+  "tables": [
+  ]
+}
