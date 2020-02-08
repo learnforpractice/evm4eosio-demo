@@ -3,18 +3,6 @@ import json
 import web3
 from web3 import Web3
 from solc import link_code
-from pyeoskit import eosapi
-
-from eth_utils import (
-    to_dict,
-)
-
-keys = {
-    '0xb654a7a81e0aeb7721a22f27a04ecf5af0e8a9a3':'0x2a2a401e99b8b032fcb20c320af2bc066222eba7c0496e012200e58caf1bfb5a',
-    '0x75852e7970857bd19fe1984d95ced5aa9760d615':'0x40b37416a2e9dbec8216da99393353191fae7ccacee0c57b3ed83391a17389dc',
-    '0xf85a43020b1afd50e78dcbbe3b1ac8f4b07a0919':'0x8a30bcfc8638d210ec90799cb298f990ca1fb80bd1cba24e82c044a7e028f19c'
-}
-
 from eth_account._utils.transactions import (
     ChainAwareUnsignedTransaction,
     UnsignedTransaction,
@@ -23,62 +11,41 @@ from eth_account._utils.transactions import (
     strip_signature,
 )
 
+from eth_utils import (
+    to_dict,
+)
+
 from cytoolz import dissoc
 
-def publish_evm_code_old(transaction):
-    key = None
-#    print(transaction)
-    if 'from' in transaction:
-        address = transaction['from']
-        if address.lower() in keys:
-            key = keys[address.lower()]
-    
-    if not key:
-        key = '0x8a30bcfc8638d210ec90799cb298f990ca1fb80bd1cba24e82c044a7e028f19c'
-        transaction['from'] = '0xF85A43020B1afD50E78dcBBE3B1aC8F4b07A0919'
-    
-    transaction['nonce'] = 0
-    transaction['gasPrice'] = 1
-    transaction['gas'] = 20000000
-    #https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
-    transaction['chainId'] = 1 #Ethereum mainnet
-    
-    print(transaction)
-    signed = web3.eth.Account.sign_transaction(transaction, '0x'+'0'*64)
-    print(signed)
+from pyeoskit import eosapi
 
-    name = 'helloworld11'
-    try:
-        sender = transaction['from'];
-        if sender[:2] == '0x':
-            sender = sender[2:]
-        args = {'trx': signed.rawTransaction.hex(), 'sender': sender}
-        r = eosapi.push_action(name, 'raw', signed.rawTransaction, {name:'active'})
-        return r
-        res = r['processed']['action_traces'][0]['receipt']['return_value']
-#        print(res)
-        res = bytes.fromhex(res).decode('utf8')
-        res = json.loads(res)
-        print(r['processed']['elapsed'])
-#        print('++++res:', res)
-        return res
-    except Exception as e:
-        print('++++', e)
+keys = {
+    '0xb654a7a81e0aeb7721a22f27a04ecf5af0e8a9a3':'0x2a2a401e99b8b032fcb20c320af2bc066222eba7c0496e012200e58caf1bfb5a',
+    '0x75852e7970857bd19fe1984d95ced5aa9760d615':'0x40b37416a2e9dbec8216da99393353191fae7ccacee0c57b3ed83391a17389dc',
+    '0xf85a43020b1afd50e78dcbbe3b1ac8f4b07a0919':'0x8a30bcfc8638d210ec90799cb298f990ca1fb80bd1cba24e82c044a7e028f19c'
+}
+
+g_chain_id = 1
+
+def set_chain_id(id):
+    global g_chain_id
+    g_chain_id = id
 
 def publish_evm_code(transaction):
-
+    global g_chain_id
+    
     transaction['nonce'] = 0
     transaction['gasPrice'] = 1
     transaction['gas'] = 20000000
-
+#    transaction['chainId'] = chain_id #Ethereum mainnet
 
     sender = transaction['from'];
     if sender[:2] == '0x':
         sender = sender[2:]
     transaction = dissoc(transaction, 'from')
-    print(transaction)
+#    print(transaction)
     unsigned_transaction = serializable_unsigned_transaction_from_dict(transaction)
-    encoded_transaction = encode_transaction(unsigned_transaction, vrs=(0, 0, 0))
+    encoded_transaction = encode_transaction(unsigned_transaction, vrs=(g_chain_id, 0, 0))
 
     name = 'helloworld11'
     try:
