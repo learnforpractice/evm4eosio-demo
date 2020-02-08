@@ -52,7 +52,7 @@ python3.7 testnet-init.py
 ```
 
 ### Open Jupyter Notebook
-
+In eos-with-evm-demo directory, run the following command
 ```
 python3.7 -m notebook
 ```
