@@ -42,6 +42,12 @@
         {"name":"account", "type":"name"},
         {"name":"amount", "type":"asset"}
        ]
+    },{
+      "name": "setchainid",
+      "base": "",
+      "fields": [
+        {"name":"chainid", "type":"int32"}
+       ]
     }
   ],
   "actions": [
@@ -69,6 +75,10 @@
     },{
       "name": "withdraw",
       "type": "withdraw",
+      "ricardian_contract": ""
+    },{
+      "name": "setchainid",
+      "type": "setchainid",
       "ricardian_contract": ""
     }
   ],

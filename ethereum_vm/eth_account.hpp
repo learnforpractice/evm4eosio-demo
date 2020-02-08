@@ -18,6 +18,9 @@ typedef std::array<unsigned char, 32> value256;
 // typedef std::vector<unsigned char> key256;
 // typedef std::vector<unsigned char> value256;
 
+void eth_set_chain_id(int32_t chain_id);
+int32_t eth_get_chain_id();
+
 bool eth_account_bind_address_to_creator(eth_address& address, uint64_t creator);
 bool eth_account_find_address_by_creator(uint64_t creator, eth_address& address);
 

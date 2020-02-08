@@ -82,7 +82,8 @@ struct [[eosio::table]] addressmap {
 
 struct [[eosio::table]] accountcounter {
     uint64_t                        count;
-    EOSLIB_SERIALIZE( accountcounter, (count) )
+    int32_t                         chain_id;
+    EOSLIB_SERIALIZE( accountcounter, (count)(chain_id) )
 };
 
 typedef eosio::singleton< "global"_n, accountcounter >   account_counter;
@@ -94,6 +95,33 @@ typedef multi_index<"ethaccount"_n,
                 indexed_by< "bysecondary"_n,
                 const_mem_fun<ethaccount, checksum256, &ethaccount::get_secondary> > > ethaccount_table;
 
+
+void eth_set_chain_id(int32_t chain_id) {
+    uint64_t code = current_receiver().value;
+    uint64_t scope = code;
+
+    uint64_t payer = current_receiver().value;
+
+    account_counter counter(name(code), scope);
+
+    accountcounter a = {0};
+    a = counter.get_or_default(a);
+    a.chain_id = chain_id;
+    counter.set(a, name(payer));
+}
+
+int32_t eth_get_chain_id() {
+    uint64_t code = current_receiver().value;
+    uint64_t scope = code;
+
+    uint64_t payer = current_receiver().value;
+
+    account_counter counter(name(code), scope);
+
+    accountcounter a = {0, 0};
+    a = counter.get_or_default(a);
+    return a.chain_id;
+}
 
 bool eth_account_bind_address_to_creator(eth_address& address, uint64_t creator) {
     uint64_t code = current_receiver().value;
@@ -532,7 +560,6 @@ bool eth_account_set_value(eth_address& address, key256& key, value256& value) {
     }
     return true;
 }
-
 
 bool eth_account_clear_value(eth_address& address, key256& key) {
     uint64_t index = eth_account_get_index(address);
