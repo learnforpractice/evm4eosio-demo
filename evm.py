@@ -122,7 +122,7 @@ class LocalProvider(web3.providers.base.JSONBaseProvider):
 
     def request_func_(self, method, params):
         if method == 'eth_sendTransaction':
-            print('----request_func', method, params)
+            #print('----request_func', method, params)
             res = publish_evm_code(params[0])
             #eth_sendTransaction(*params)
             return {"id":1, "jsonrpc": "2.0", 'result': res}
