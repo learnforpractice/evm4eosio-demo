@@ -46,7 +46,7 @@ python3.7 -m pip install --pre web3[tester]
 ```
 
 ## Initialize the Testnet
-cd to directory tests of eos-wit-evm source code, run:
+cd to directory tests of eos-with-evm source code, run:
 ```
 python3.7 testnet-init.py
 ```
