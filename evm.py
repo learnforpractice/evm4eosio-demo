@@ -77,19 +77,9 @@ def publish_evm_code(transaction):
     else:
         contract_name = 'helloworld11'
     
-    try:
-        args = {'trx': encoded_transaction, 'sender': sender}
-        r = eosapi.push_action(contract_name, 'raw', args, {account_name:'active'})
-        return r
-        res = r['processed']['action_traces'][0]['receipt']['return_value']
-#        print(res)
-        res = bytes.fromhex(res).decode('utf8')
-        res = json.loads(res)
-        print(r['processed']['elapsed'])
-#        print('++++res:', res)
-        return res
-    except Exception as e:
-        print('++++', e)
+    args = {'trx': encoded_transaction, 'sender': sender}
+    r = eosapi.push_action(contract_name, 'raw', args, {account_name:'active'})
+    return r
 
 class LocalProvider(web3.providers.base.JSONBaseProvider):
     endpoint_uri = None

@@ -9,6 +9,8 @@ import rlp
 import hashlib
 from eth_utils import keccak
 import logging
+from solcx import compile_source, compile_files
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(lineno)d %(module)s %(message)s')
 
@@ -143,6 +145,50 @@ except Exception as e:
     e = json.loads(e.response)
     assert e['error']['details'][0]['message'] == "assertion failure with message: balance overdraw!"
 
+
+#test deploy evm contract
+
+evm.set_current_account(test_account)
+
+greeter = open('greeter.sol', 'r').read()
+def compile(contract_source_code, main_class):
+    compiled_sol = compile_source(contract_source_code) # Compiled source code
+    contract_interface = compiled_sol[main_class]
+
+    return contract_interface
+
+nonce = a.get_nonce(eth_address)
+e = rlp.encode([bytes.fromhex(eth_address), nonce])
+h = keccak(e)
+expected_address = h[12:].hex()
+
+
+main_class = '<stdin>:Greeter'
+contract_source_code = greeter
+contract_interface = compile(contract_source_code, main_class)
+bytecode = contract_interface['bin']
+abi = contract_interface['abi']
+
+Greeter = w3.eth.contract(abi=abi, bytecode=bytecode)
+ret = Greeter.constructor().transact({'from': eth_address})
+logger.info(("+++++ret:", ret))
+
+logs = ret['processed']['action_traces'][0]['console']
+logs = bytes.fromhex(logs)
+logs = rlp.decode(logs)
+contract_address = logs[0].hex()
+
+assert expected_address == contract_address
+assert a.get_nonce(eth_address) == nonce + 1
+
+#test get contract code
+code = a.get_code(contract_address)
+# logger.info(code)
+# logger.info(logs[1].hex())
+assert code == logs[1].hex()
+
+# contract_address = w3.toChecksumAddress(output['new_address'])
+# print('+++contract_address:', contract_address)
 
 
 
