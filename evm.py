@@ -3,6 +3,7 @@ import json
 import web3
 from web3 import Web3
 from solc import link_code
+import rlp
 from eth_account._utils.transactions import (
     ChainAwareUnsignedTransaction,
     UnsignedTransaction,
@@ -11,46 +12,74 @@ from eth_account._utils.transactions import (
     strip_signature,
 )
 
+from eth_account.account import Account
+
 from eth_utils import (
     to_dict,
 )
 
 from cytoolz import dissoc
-
 from pyeoskit import eosapi
 
 keys = {
-    '0xb654a7a81e0aeb7721a22f27a04ecf5af0e8a9a3':'0x2a2a401e99b8b032fcb20c320af2bc066222eba7c0496e012200e58caf1bfb5a',
-    '0x75852e7970857bd19fe1984d95ced5aa9760d615':'0x40b37416a2e9dbec8216da99393353191fae7ccacee0c57b3ed83391a17389dc',
-    '0xf85a43020b1afd50e78dcbbe3b1ac8f4b07a0919':'0x8a30bcfc8638d210ec90799cb298f990ca1fb80bd1cba24e82c044a7e028f19c'
+#     'b654a7a81e0aeb7721a22f27a04ecf5af0e8a9a3':'2a2a401e99b8b032fcb20c320af2bc066222eba7c0496e012200e58caf1bfb5a',
+#     '75852e7970857bd19fe1984d95ced5aa9760d615':'40b37416a2e9dbec8216da99393353191fae7ccacee0c57b3ed83391a17389dc',
+#     'f85a43020b1afd50e78dcbbe3b1ac8f4b07a0919':'8a30bcfc8638d210ec90799cb298f990ca1fb80bd1cba24e82c044a7e028f19c',
+#     '2c7536e3605d9c16a7a3d7b1898e529396a65c23':'4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318'
 }
 
 g_chain_id = 1
+g_current_account = None
+g_contract_name = None
 
 def set_chain_id(id):
     global g_chain_id
     g_chain_id = id
 
+def set_current_account(account):
+    global g_current_account
+    g_current_account = account
+
+def set_contract_name(account):
+    global g_contract_name
+    g_contract_name = account
+
 def publish_evm_code(transaction):
     global g_chain_id
+    global g_current_account
     
     transaction['nonce'] = 0
     transaction['gasPrice'] = 1
     transaction['gas'] = 20000000
 #    transaction['chainId'] = chain_id #Ethereum mainnet
-
+#     print(transaction)
     sender = transaction['from'];
     if sender[:2] == '0x':
         sender = sender[2:]
-    transaction = dissoc(transaction, 'from')
-#    print(transaction)
-    unsigned_transaction = serializable_unsigned_transaction_from_dict(transaction)
-    encoded_transaction = encode_transaction(unsigned_transaction, vrs=(g_chain_id, 0, 0))
+    sender = sender.lower()
+    if sender in keys:
+        priv_key = key_maps[sender]
+        encoded_transaction = Account.sign_transaction(transaction, priv_key)   
+        encoded_transaction = encoded_transaction.rawTransaction.hex()[2:]
+    else:
+        transaction = dissoc(transaction, 'from')
+        unsigned_transaction = serializable_unsigned_transaction_from_dict(transaction)
+        encoded_transaction = encode_transaction(unsigned_transaction, vrs=(g_chain_id, 0, 0))
+        encoded_transaction = encoded_transaction.hex()
 
-    name = 'helloworld11'
+    if g_current_account:
+        account_name = g_current_account
+    else:
+        account_name = 'helloworld11'
+    
+    if g_contract_name:
+        contract_name = g_contract_name
+    else:
+        contract_name = 'helloworld11'
+    
     try:
-        args = {'trx': encoded_transaction.hex(), 'sender': sender}
-        r = eosapi.push_action(name, 'raw', args, {name:'active'})
+        args = {'trx': encoded_transaction, 'sender': sender}
+        r = eosapi.push_action(contract_name, 'raw', args, {account_name:'active'})
         return r
         res = r['processed']['action_traces'][0]['receipt']['return_value']
 #        print(res)
@@ -61,45 +90,6 @@ def publish_evm_code(transaction):
         return res
     except Exception as e:
         print('++++', e)
-        
-def get_code(contract_name):
-    circuits_path = '/Users/newworld/dev/tornado-core/build/circuits'
-    contract = os.path.join(circuits_path, f'{contract_name}.json')
-    contract = open(contract, 'r').read()
-    contract = json.loads(contract)
-    abi = contract['abi']
-    return contract['bytecode']
-
-def gen_contract(bytecode, abi):
-    return w3.eth.contract(
-        address=Web3.toChecksumAddress('0xb654A7A81E0aeb7721A22F27A04ecf5aF0E8a9A3'),
-        bytecode=bytecode,
-        abi=abi,
-    )
-
-
-def get_contract(contract_name, library_name=None, library_address=None):
-    circuits_path = '/Users/newworld/dev/tornado-core/build/circuits'
-    contract = os.path.join(circuits_path, f'{contract_name}.json')
-    with open(contract, 'r') as f:
-        contract = f.read()
-    contract = json.loads(contract)
-    abi = contract['abi']
-    bytecode = contract['bytecode']
-    
-    if library_name and library_address:
-        bytecode = link_code(bytecode, {library_name: library_address})
-
-    return gen_contract(bytecode, abi)
-
-def get_contract_abi(contract_name):
-    circuits_path = '/Users/newworld/dev/tornado-core/build/circuits'
-    contract = os.path.join(circuits_path, f'{contract_name}.json')
-    with open(contract, 'r') as f:
-        contract = f.read()
-    contract = json.loads(contract)
-    return contract['abi']
-    
 
 class LocalProvider(web3.providers.base.JSONBaseProvider):
     endpoint_uri = None
@@ -122,7 +112,7 @@ class LocalProvider(web3.providers.base.JSONBaseProvider):
 
     def request_func_(self, method, params):
         if method == 'eth_sendTransaction':
-            #print('----request_func', method, params)
+#             print('----request_func', method, params)
             res = publish_evm_code(params[0])
             #eth_sendTransaction(*params)
             return {"id":1, "jsonrpc": "2.0", 'result': res}
