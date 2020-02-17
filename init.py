@@ -166,9 +166,9 @@ def compile_cpp_file(src_path, includes=[], entry='apply', opt='O3'):
     return compiler.compile_cpp_file(opt)
 
 def compile_cpp_src(account_name, code, includes = [], entry='apply', opt='O3'):
-    if not os.path.exists('tmp'):
-        os.mkdir('tmp')
-    src_path = os.path.join('tmp', account_name+'.cpp')
+    if not os.path.exists('.tmp'):
+        os.mkdir('.tmp')
+    src_path = os.path.join('.tmp', account_name+'.cpp')
     if os.path.exists(src_path):
         old_code = open(src_path).read()
         if old_code == code:
@@ -198,7 +198,7 @@ def deploy_cpp_contract_from_file(account_name, file_name, includes = [], entry=
 
 def publish_cpp_contract(account_name, code, abi='', includes = [], entry='apply', opt='O3',vm_type=0):
     code = compile_cpp_src(account_name, code, includes, entry=entry, opt=opt)
-    code = open(f'tmp/{account_name}.wasm', 'rb').read()
+    code = open(f'.tmp/{account_name}.wasm', 'rb').read()
     m = hashlib.sha256()
     m.update(code)
     code_hash = m.hexdigest()

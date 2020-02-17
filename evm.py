@@ -32,6 +32,13 @@ g_chain_id = 1
 g_current_account = None
 g_contract_name = None
 
+def format_log(aa):
+    for i in range(len(aa)):
+        if isinstance(aa[i], bytes):
+            aa[i] = aa[i].hex()
+        elif isinstance(aa[i], list):
+            format_log(aa[i])
+
 def set_chain_id(id):
     global g_chain_id
     g_chain_id = id
@@ -145,7 +152,7 @@ def get_eth_address_info(contract, eth_addr):
 
 def normalize_address(address):
     if address[:2] == '0x':
-        address = address[:2]
+        address = address[2:]
     return address.lower()
 
 class EthAccount():
@@ -296,9 +303,17 @@ class EthAccount():
 #                 indexed_by< "bykey"_n,
 #                 const_mem_fun<account_state, checksum256, &account_state::by_key> > > account_state_table;
 
+    def get_all_values(self, address):
+        creator = self.get_creator(address)
+        index = self.get_index(address)
+        print('+++++index:', creator, index)
+        index = eosapi.n2s(index)
+        ret = eosapi.get_table_rows(True, self.contract_account, index, 'accountstate', '', '', '', 100)
+        return ret['rows']
+
     def get_value(self, address, key):
-        creator = self.get_address_creator(address)
-        index = self.get_address_index(address)
+        creator = self.get_creator(address)
+        index = self.get_index(address)
         index = eosapi.n2s(index)
         ret = eosapi.get_table_rows(True, self.contract_account, index, 'accountstate', '', '', '', 100)
         for row in ret['rows']:
