@@ -1,0 +1,171 @@
+{
+   "version": "eosio::abi/1.0",
+   "types": [],
+  "structs": [
+    {
+      "name": "ethaccount",
+      "base": "",
+      "fields": [
+        {"name":"index", "type":"uint64"},
+        {"name":"creator", "type":"name"},
+        {"name":"nonce", "type":"int32"},
+        {"name":"address", "type":"bytes"},
+        {"name":"balance", "type":"asset"},
+       ]
+    },{
+      "name": "accountstate",
+      "base": "",
+      "fields": [
+        {"name":"index", "type":"uint64"},
+        {"name":"key",   "type":"checksum256"},
+        {"name":"value", "type":"checksum256"}
+       ]
+    },{
+      "name": "ethcode",
+      "base": "",
+      "fields": [
+        {"name":"index",   "type":"uint64"},
+        {"name":"address", "type":"bytes"},
+        {"name":"code",    "type":"bytes"}
+       ]
+    },{
+      "name": "global",
+      "base": "",
+      "fields": [
+        {"name":"count",   "type":"uint64"},
+        {"name":"chainid", "type":"int32"}
+       ]
+    },{
+      "name": "keycounter",
+      "base": "",
+      "fields": [
+        {"name":"count",   "type":"uint64"},
+       ]
+    },{
+      "name": "addressmap",
+      "base": "",
+      "fields": [
+        {"name":"creator",   "type":"name"},
+        {"name":"address",   "type":"bytes"}
+       ]
+    },{
+      "name": "create",
+      "base": "",
+      "fields": [
+        {"name":"account", "type":"name"},
+        {"name":"text", "type":"string"},
+       ]
+    },{
+      "name": "bind",
+      "base": "",
+      "fields": [
+        {"name":"account", "type":"name"},
+        {"name":"address", "type":"bytes"}
+       ]
+    },{
+      "name": "ethraw",
+      "base": "",
+      "fields": [
+        {"name":"trx", "type":"bytes"},
+        {"name":"sender", "type":"bytes"}
+       ]
+    },{
+      "name": "addrinfo",
+      "base": "",
+      "fields": [
+        {"name":"nonce", "type":"uint64"},
+        {"name":"balance", "type":"asset"},
+       ]
+    },{
+      "name": "getaddrinfo",
+      "base": "",
+      "fields": [
+        {"name":"address", "type":"bytes"}
+       ]
+    },{
+      "name": "withdraw",
+      "base": "",
+      "fields": [
+        {"name":"account", "type":"name"},
+        {"name":"amount", "type":"asset"}
+       ]
+    },{
+      "name": "setchainid",
+      "base": "",
+      "fields": [
+        {"name":"chainid", "type":"int32"}
+       ]
+    }
+  ],
+  "actions": [
+    {
+      "name": "create",
+      "type": "create",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "bind",
+      "type": "bind",
+      "ricardian_contract": ""
+    },{
+      "name": "raw",
+      "type": "ethraw",
+      "ricardian_contract": ""
+    },{
+      "name": "getaddrinfo",
+      "type": "getaddrinfo",
+      "ricardian_contract": ""
+    },{
+      "name": "addrinfo",
+      "type": "addrinfo",
+      "ricardian_contract": ""
+    },{
+      "name": "withdraw",
+      "type": "withdraw",
+      "ricardian_contract": ""
+    },{
+      "name": "setchainid",
+      "type": "setchainid",
+      "ricardian_contract": ""
+    }
+  ],
+  "tables": [
+      {
+          "name": "ethaccount",
+          "type": "ethaccount",
+          "index_type": "i64",
+          "key_names": [],
+          "key_types": []
+      },{
+          "name": "accountstate",
+          "type": "accountstate",
+          "index_type": "i64",
+          "key_names": [],
+          "key_types": []
+      },{
+          "name": "ethcode",
+          "type": "ethcode",
+          "index_type": "i64",
+          "key_names": [],
+          "key_types": []
+      },{
+          "name": "global",
+          "type": "global",
+          "index_type": "i64",
+          "key_names": [],
+          "key_types": []
+      },{
+          "name": "global2",
+          "type": "keycounter",
+          "index_type": "i64",
+          "key_names": [],
+          "key_types": []
+      },{
+          "name": "addressmap",
+          "type": "addressmap",
+          "index_type": "i64",
+          "key_names": [],
+          "key_types": []
+      }
+  ]
+}
