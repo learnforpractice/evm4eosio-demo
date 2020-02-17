@@ -53,7 +53,7 @@ key2 = 'EOS7ent7keWbVgvptfYaMYeF2cenMBiwYKcwEuc11uCbStsFKsrmV'
 def deploy_contract(account_name, contract_name, contracts_path=None):
     if not contracts_path:
         contracts_path = os.path.dirname(__file__)
-        contracts_path = os.path.join(contracts_path, '../build/externals/eosio.contracts/contracts')
+        contracts_path = os.path.join(contracts_path, 'contracts')
 
     code_path = os.path.join(contracts_path, f'{contract_name}/{contract_name}.wasm')
     abi_path = os.path.join(contracts_path, f'{contract_name}/{contract_name}.abi')
@@ -133,7 +133,7 @@ except Exception as e:
 create_system_accounts()
 
 contracts_path = os.path.dirname(__file__)
-contracts_path = os.path.join(contracts_path, '../build/contracts')
+contracts_path = os.path.join(contracts_path, 'contracts')
 
 deploy_contract('eosio', 'eosio.bios', contracts_path)
 
