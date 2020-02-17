@@ -233,22 +233,42 @@ class EthAccount():
                 return row
         return None
 
-    def get_address_creator(self, address):
+#addressmap
+#     uint64_t code = current_receiver().value;
+#     uint64_t scope = code;
+#primary_index creator
+# struct [[eosio::table]] addressmap {
+#     uint64_t                        creator;
+#     std::vector<char>               address;
+#     uint64_t primary_key() const { return creator; }
+# }
+    def get_binded_address(self, account):
+        ret = eosapi.get_table_rows(True, self.contract_account, self.contract_account, 'addressmap', account, '', '', 1)
+        rows = ret['rows']
+        if not rows:
+            return
+        return rows[0]['address']
+
+    def get_creator(self, address):
         row = self.get_address_info(address)
         if row:
             return row['creator']
 
-    def get_address_index(self, address):
+    def get_index(self, address):
         row = self.get_address_info(address)
         if row:
             return row['index']
 
-    def get_address_balance(self, address):
+    def get_balance(self, address):
         row = self.get_address_info(address)
+        # print(row)
         if row:
-            return row['balance']
+            balance = row['balance']
+            balance = balance.split(' ')[0]
+            return float(balance)
+        return 0.0
 
-    def get_address_nonce(self, address):
+    def get_nonce(self, address):
         row = self.get_address_info(address)
         if row:
             return row['nonce']
