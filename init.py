@@ -9,15 +9,25 @@ from pyeoskit import config
 from pyeoskit._hello import _eosapi
 
 db.reset()
-config.main_token = 'UUOS'
-default_vm_type=1
+config.main_token = 'EOS'
+default_vm_type=0
 
 if os.path.exists('test.wallet'):
     os.remove('test.wallet')
 psw = wallet.create('test')
 
-wallet.import_key('test', '5KH8vwQkP4QoTwgBtCV5ZYhKmv8mx56WeNrw9AZuhNRXTrPzgYc')
-wallet.import_key('test', '5JMXaLz5xnVvwrnvAGaZKQZFCDdeU6wjmuJY1rDnXiUZz7Gyi1o')
+priv_keys = [
+    '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3',#EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV
+    '5JEcwbckBCdmji5j8ZoMHLEUS8TqQiqBG1DRx1X9DN124GUok9s',#EOS61MgZLN7Frbc2J7giU7JdYjy2TqnfWFjZuLXvpHJoKzWAj7Nst
+    '5JbDP55GXN7MLcNYKCnJtfKi9aD2HvHAdY7g8m67zFTAFkY1uBB',#EOS5JuNfuZPATy8oPz9KMZV2asKf9m8fb2bSzftvhW55FKQFakzFL
+    '5K463ynhZoCDDa4RDcr63cUwWLTnKqmdcoTKTHBjqoKfv4u5V7p',#EOS8Znrtgwt8TfpmbVpTKvA2oB8Nqey625CLN8bCN3TEbgx86Dsvr
+    '5KH8vwQkP4QoTwgBtCV5ZYhKmv8mx56WeNrw9AZuhNRXTrPzgYc',#EOS7ent7keWbVgvptfYaMYeF2cenMBiwYKcwEuc11uCbStsFKsrmV
+    '5KT26sGXAywAeUSrQjaRiX9uk9uDGNqC1CSojKByLMp7KRp8Ncw',#EOS8Ep2idd8FkvapNfgUwFCjHBG4EVNAjfUsRRqeghvq9E91tkDaj
+]
+for priv_key in priv_keys:
+    wallet.import_key('test', priv_key)
+
+db.reset()
 
 #eosapi.set_nodes(['https://nodes.uuos.network:8443'])
 eosapi.set_nodes(['http://127.0.0.1:8888'])

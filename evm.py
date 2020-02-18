@@ -19,7 +19,7 @@ from eth_utils import (
 )
 
 from cytoolz import dissoc
-from pyeoskit import eosapi
+from pyeoskit import eosapi, wallet, db, config
 
 keys = {
 #     'b654a7a81e0aeb7721a22f27a04ecf5af0e8a9a3':'2a2a401e99b8b032fcb20c320af2bc066222eba7c0496e012200e58caf1bfb5a',
@@ -383,8 +383,8 @@ class EthAccount(object):
     {'index': 1, 'creator': 'helloworld12', 'nonce': 2, 'address': '2c7536e3605d9c16a7a3d7b1898e529396a65c23', 'balance': '9.9000 SYS'}
     '''
     def __init__(self, contract_account, eth_address):
-        self.contract_account = contract_account
-        self.address = eth_address
+        self.contract_account = normalize_address(contract_account)
+        self.address = normalize_address(eth_address)
         self.eth = Eth(contract_account)
 
     def get_address_info(self):
