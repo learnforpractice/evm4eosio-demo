@@ -156,7 +156,23 @@ def normalize_address(address):
     return address.lower()
 
 class Eth(object):
-
+    '''
+        Examples:
+        >>> import evm
+        >>> eth = evm.Eth('helloworld11')
+        >>> eth.get_all_address_info()
+        [{'index': 1, 'creator': 'helloworld12', 'nonce': 2, 'address': '2c7536e3605d9c16a7a3d7b1898e529396a65c23', 'balance': '9.9000 SYS'}]
+        >>> eth.get_address_info('2c7536e3605d9c16a7a3d7b1898e529396a65c23')
+        {'index': 1, 'creator': 'helloworld12', 'nonce': 2, 'address': '2c7536e3605d9c16a7a3d7b1898e529396a65c23', 'balance': '9.9000 SYS'}
+        >>> eth.get_eth_address_count()
+        1
+        >>> eth.get_binded_address('helloworld12')
+        '2c7536e3605d9c16a7a3d7b1898e529396a65c23'
+        >>> eth.get_creator('2c7536e3605d9c16a7a3d7b1898e529396a65c23')
+        'helloworld12'
+        >>> eth.get_index('2c7536e3605d9c16a7a3d7b1898e529396a65c23')
+        1
+    '''
     def __init__(self, contract_account):
         self.contract_account = contract_account
 
@@ -190,6 +206,10 @@ class Eth(object):
             return ret['rows'][0]['count']
         return 0
 
+    def get_all_address_info(self):
+        ret = eosapi.get_table_rows(True, self.contract_account, self.contract_account, 'ethaccount', '', '', '', 100)
+        return ret['rows']
+
 #table ethaccount
 
 #     uint64_t code = current_receiver().value;
@@ -222,29 +242,25 @@ class Eth(object):
 #                 indexed_by< "bycreator"_n, const_mem_fun<ethaccount, uint64_t, &ethaccount::by_creator> > 
 #                 > ethaccount_table;
     def get_address_info(self, address):
-        address = normalize_address(address)
-        ret = eosapi.get_table_rows(True, self.contract_account, self.contract_account, 'ethaccount', '', '', '', 100)
-        rows = ret['rows']
+        rows = self.get_all_address_info()
         for row in rows:
             if row['address'] == address:
                 return row
         return None
 
-#addressmap
-#     uint64_t code = current_receiver().value;
-#     uint64_t scope = code;
-#primary_index creator
-# struct [[eosio::table]] addressmap {
-#     uint64_t                        creator;
-#     std::vector<char>               address;
-#     uint64_t primary_key() const { return creator; }
-# }
+    #addressmap
+    #     uint64_t code = current_receiver().value;
+    #     uint64_t scope = code;
+    #primary_index creator
+    # struct [[eosio::table]] addressmap {
+    #     uint64_t                        creator;
+    #     std::vector<char>               address;
+    #     uint64_t primary_key() const { return creator; }
+    # }
     def get_binded_address(self, account):
         ret = eosapi.get_table_rows(True, self.contract_account, self.contract_account, 'addressmap', account, '', '', 1)
-        rows = ret['rows']
-        if not rows:
-            return
-        return rows[0]['address']
+        assert ret['rows'][0]['creator'] == account
+        return ret['rows'][0]['address']
 
     def get_creator(self, address):
         row = self.get_address_info(address)
@@ -269,20 +285,6 @@ class Eth(object):
         row = self.get_address_info(address)
         if row:
             return row['nonce']
-
-    #addressmap
-    #     uint64_t code = current_receiver().value;
-    #     uint64_t scope = code;
-    #primary_index creator
-    # struct [[eosio::table]] addressmap {
-    #     uint64_t                        creator;
-    #     std::vector<char>               address;
-    #     uint64_t primary_key() const { return creator; }
-    # }
-    def get_account_binded_address(self, account):
-        ret = eosapi.get_table_rows(True, self.contract_account, self.contract_account, 'addressmap', account, '', '', 1)
-        assert ret['rows'][0]['creator'] == account
-        return ret['rows'][0]['address']
 
 #table account_state
 # uint64_t code = current_receiver().value;
@@ -349,7 +351,19 @@ class Eth(object):
 
 
 class EthAccount(object):
-
+    '''
+    Example:
+    >>> import evm
+    >>> a = evm.EthAccount('helloworld11', '2c7536e3605d9c16a7a3d7b1898e529396a65c23')
+    >>> a.get_balance()
+    9.9
+    >>> a.get_nonce()
+    2
+    >>> a.get_creator()
+    'helloworld12'
+    >>> a.get_address_info()
+    {'index': 1, 'creator': 'helloworld12', 'nonce': 2, 'address': '2c7536e3605d9c16a7a3d7b1898e529396a65c23', 'balance': '9.9000 SYS'}
+    '''
     def __init__(self, contract_account, eth_address):
         self.contract_account = contract_account
         self.address = eth_address
