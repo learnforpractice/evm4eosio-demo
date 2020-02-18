@@ -1,5 +1,24 @@
 # Get Started
 
+## Install Solidity
+
+### Ubuntu 18.04:
+
+```
+sudo add-apt-repository ppa:ethereum/ethereum
+sudo apt-get update
+sudo apt-get install solc
+```
+
+### Mac OS X:
+
+```
+brew update
+brew upgrade
+brew tap ethereum/ethereum
+brew install solidity
+```
+
 ## Clone Demo From Github
 ```
 git clone https://github.com/learnforpractice/eos-with-evm-demo
@@ -53,6 +72,13 @@ At the same directory, run the following command:
 ```
 python3.7 testnet-init.py
 ```
+
+That will deploy a Smart Contract at [ethereum_vm](contracts/ethereum_vm) that can run Ethereum Smart Contract to the testnet.
+
+For how to build the Smart Contract, please refer to the following link:
+
+[evm4eosio](https://github.com/learnforpractice/evm4eosio)
+
 
 ## Open Jupyter Notebook
 In eos-with-evm-demo directory, run the following command
