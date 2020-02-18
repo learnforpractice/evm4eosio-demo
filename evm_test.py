@@ -46,6 +46,9 @@ for priv_key in priv_keys:
 
 db.reset()
 
+def float_equal(f1, f2):
+    return abs(f1 - f2) <= 1e-9
+
 def compile_contract(contract_source_code, main_class):
     compiled_sol = compile_source(contract_source_code) # Compiled source code
     contract_interface = compiled_sol[main_class]
@@ -162,6 +165,11 @@ class EVMTestCase(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         pass
+    
+    @classmethod
+    def deposit(cls, account, amount):
+        evm.set_current_account(test_account)
+        r = eosapi.transfer(account, main_account, amount, 'deposit')
 
     @classmethod
     def test_deposit(cls):
@@ -268,7 +276,7 @@ class EVMTestCase(unittest.TestCase):
         # print('+++contract_address:', contract_address)
 
     @classmethod
-    def test_author(cls):
+    def test_authorization(cls):
         cls.deploy_evm_contract()
         checksum_contract_address = w3.toChecksumAddress(cls.contract_address)
         logger.info(f'{bcolors.OKGREEN}++++++++++test call evm contract with wrong authorization{bcolors.ENDC}')
@@ -280,6 +288,12 @@ class EVMTestCase(unittest.TestCase):
         except Exception as e:
             e = json.loads(e.response)
             assert e['error']['details'][0]['message'] == 'missing authority of helloworld12'
+
+    @classmethod
+    def transfer_eth(cls, _from, _to, _value):
+        evm.set_current_account('helloworld12')
+        args = {'from': w3.toChecksumAddress(_from),'to': w3.toChecksumAddress(_to), 'value':_value}
+        ret = Greeter.functions.transfer().transact(args)
 
     @classmethod
     def test_transfer_eth(cls):
@@ -299,13 +313,10 @@ class EVMTestCase(unittest.TestCase):
         }
         w3.eth.sendTransaction(transaction)
 
-        def equal(f1, f2):
-            return abs(f1 - f2) <= 1e-9
-
         logger.info((balance1, eth.get_balance(cls.eth_address)))
 
-        assert equal(balance1, eth.get_balance(cls.eth_address)+0.1)
-        assert equal(balance2+0.1, eth.get_balance(cls.main_eth_address))
+        assert float_equal(balance1, eth.get_balance(cls.eth_address)+0.1)
+        assert float_equal(balance2+0.1, eth.get_balance(cls.main_eth_address))
 
     @classmethod
     def test_transfer_eth_to_not_created_address(cls):
@@ -325,6 +336,36 @@ class EVMTestCase(unittest.TestCase):
         except Exception as e:
             e = json.loads(e.response)
             assert e['error']['details'][0]['message'] == "assertion failure with message: get_balance:address does not created!"
+
+    @classmethod
+    def test_transfer_back(cls):
+        cls.deploy_evm_contract()
+        evm.set_current_account(test_account)
+
+        checksum_contract_address = w3.toChecksumAddress(cls.contract_address)
+        
+        cls.deposit(test_account, 1.0)
+
+        logger.info((cls.eth_address, "balance", eth.get_balance(cls.eth_address)))
+        cls.transfer_eth(cls.eth_address, cls.contract_address, 1000)
+
+        balance1 = eth.get_balance(cls.eth_address)
+        balance2 = eth.get_balance(cls.contract_address)
+
+        args = {'from': cls.eth_address,'to': checksum_contract_address}
+        ret = Greeter.functions.transferBack(1000).transact(args)
+
+        float_equal(balance1+0.1, eth.get_balance(cls.eth_address))
+        float_equal(balance2-0.1, eth.get_balance(cls.contract_address))
+
+        logs = ret['processed']['action_traces'][0]['console']
+        logger.info(logs)
+        logs = bytes.fromhex(logs)
+        logs = rlp.decode(logs)
+        print(logs)
+        evm.format_log(logs)
+        print(logs)
+        print(ret['processed']['elapsed'])
 
     def setUp(self):
         pass
