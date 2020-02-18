@@ -57,6 +57,8 @@ class ShareValues(object):
     eth_address = None
     main_eth_address = None
     contract_address = None
+    callee_contract_address = None
+    tester_contract_address = None
 
 shared = ShareValues()
 
@@ -352,7 +354,6 @@ class EVMTestCase(BaseTestCase):
 class EVMTestCase2(BaseTestCase):
     
     tester_contract_address = None
-    callee_contract_address = None
 
     def __init__(self, testName, extra_args=[]):
         super().__init__(testName)
@@ -363,16 +364,16 @@ class EVMTestCase2(BaseTestCase):
         self.init_testcase2()
 
     def init_testcase2(self):
-        if self.callee_contract_address:
+        if shared.callee_contract_address:
             return
 
         logs = Tester.constructor().transact({'from': shared.eth_address})
-        self.tester_contract_address = logs[0].hex()
-        logger.info(self.tester_contract_address)
+        shared.tester_contract_address = logs[0].hex()
+        logger.info(shared.tester_contract_address)
 
         logs = Callee.constructor().transact({'from': shared.eth_address})
-        self.callee_contract_address = logs[0].hex()
-        logger.info(self.callee_contract_address)
+        shared.callee_contract_address = logs[0].hex()
+        logger.info(shared.callee_contract_address)
 
     @classmethod
     def setUpClass(cls):
@@ -380,14 +381,35 @@ class EVMTestCase2(BaseTestCase):
 
     def test_call_other_contract(self):
         _from = w3.toChecksumAddress(shared.eth_address)
-        _to = w3.toChecksumAddress(self.tester_contract_address)
-        callee_address = w3.toChecksumAddress(self.callee_contract_address)
+        _to = w3.toChecksumAddress(shared.tester_contract_address)
+        callee_address = w3.toChecksumAddress(shared.callee_contract_address)
         args = {'from': _from, 'to': _to}
 
         value = 2
         logs = Tester.functions.testCall(callee_address, value).transact(args)
         ret_value = int.from_bytes(logs[1], 'big')
         assert ret_value == value + 1
+
+    def test_suicide(self):
+        _from = w3.toChecksumAddress(shared.eth_address)
+        _to = w3.toChecksumAddress(shared.tester_contract_address)
+        args = {'from': _from, 'to': _to, 'value': 10000}
+        logs = Tester.functions.transfer().transact(args)
+        logger.info(logs)
+
+        balance11 = eth.get_balance(shared.eth_address)
+        balance21 = eth.get_balance(shared.tester_contract_address)
+        logger.info((balance11, balance21))
+        args = {'from': _from, 'to': _to}
+        logs = Tester.functions.testSuicide().transact(args)
+
+        balance12 = eth.get_balance(shared.eth_address)
+        balance22 = eth.get_balance(shared.tester_contract_address)
+        logger.info((balance12, balance22))
+
+        assert balance22 == 0
+        assert balance12 == balance11 + balance21
+
 
 def suite():
     suite = unittest.TestSuite()
@@ -406,8 +428,9 @@ def suite():
     return suite
 
 if __name__ == '__main__':
-    runner = unittest.TextTestRunner(failfast=True)
-    runner.run(suite())
+    # runner = unittest.TextTestRunner(failfast=True)
+    # runner.run(suite())
+    unittest.main()
 
 print('Done!')
 

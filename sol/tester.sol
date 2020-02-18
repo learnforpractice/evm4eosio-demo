@@ -13,6 +13,9 @@ contract Tester {
       owner = msg.sender;
     }
 
+    function transfer() payable public returns (uint) {
+    }
+ 
     function testTransfer() payable public returns (uint) {
         msg.sender.transfer(1); //transfer back 0.0001 EOS
         return 0;
