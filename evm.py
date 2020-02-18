@@ -60,7 +60,7 @@ def publish_evm_code(transaction):
     transaction['gas'] = 20000000
 #    transaction['chainId'] = chain_id #Ethereum mainnet
 #     print(transaction)
-    sender = transaction['from'];
+    sender = transaction['from']
     if sender[:2] == '0x':
         sender = sender[2:]
     sender = sender.lower()
@@ -258,7 +258,11 @@ class Eth(object):
     #     uint64_t primary_key() const { return creator; }
     # }
     def get_binded_address(self, account):
-        ret = eosapi.get_table_rows(True, self.contract_account, self.contract_account, 'addressmap', account, '', '', 1)
+        print('+++get_binded_address', account)
+        ret = eosapi.get_table_rows(True, self.contract_account, self.contract_account, 'addressmap', account, account, account, 1)
+        print(ret)
+        if not ret['rows']:
+            return
         assert ret['rows'][0]['creator'] == account
         return ret['rows'][0]['address']
 
