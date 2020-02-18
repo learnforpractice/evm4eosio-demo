@@ -256,6 +256,7 @@ class Eth(object):
 #                 indexed_by< "bycreator"_n, const_mem_fun<ethaccount, uint64_t, &ethaccount::by_creator> > 
 #                 > ethaccount_table;
     def get_address_info(self, address):
+        address = normalize_address(address)
         rows = self.get_all_address_info()
         for row in rows:
             if row['address'] == address:
@@ -281,16 +282,19 @@ class Eth(object):
         return ret['rows'][0]['address']
 
     def get_creator(self, address):
+        address = normalize_address(address)
         row = self.get_address_info(address)
         if row:
             return row['creator']
 
     def get_index(self, address):
+        address = normalize_address(address)
         row = self.get_address_info(address)
         if row:
             return row['index']
 
     def get_balance(self, address):
+        address = normalize_address(address)
         row = self.get_address_info(address)
         # print(row)
         if row:
@@ -300,6 +304,7 @@ class Eth(object):
         return 0.0
 
     def get_nonce(self, address):
+        address = normalize_address(address)
         row = self.get_address_info(address)
         if row:
             return row['nonce']
@@ -324,6 +329,7 @@ class Eth(object):
 #                 const_mem_fun<account_state, checksum256, &account_state::by_key> > > account_state_table;
 
     def get_all_values(self, address):
+        address = normalize_address(address)
         creator = self.get_creator(address)
         index = self.get_index(address)
         print('+++++index:', creator, index)
@@ -332,6 +338,7 @@ class Eth(object):
         return ret['rows']
 
     def get_value(self, address, key):
+        address = normalize_address(address)
         creator = self.get_creator(address)
         index = self.get_index(address)
         index = eosapi.n2s(index)
@@ -349,7 +356,7 @@ class Eth(object):
         index = row['index']
         creator = row['creator']
         index = eosapi.n2s(index)
-        ret = eosapi.get_table_rows(True, self.contract_account, creator, 'ethcode', index, '', '', 1)
+        ret = eosapi.get_table_rows(True, self.contract_account, creator, 'ethcode', index, index, index, 1)
         if ret['rows']:
             return ret['rows'][0]['code']
         return ''
