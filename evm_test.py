@@ -3,7 +3,7 @@ import json
 from pyeoskit import eosapi
 
 import evm
-from evm import EthAccount
+from evm import Eth, EthAccount
 from evm import get_eth_address_info, w3
 import rlp
 import hashlib
@@ -54,7 +54,7 @@ def compile_contract(contract_source_code, main_class):
 
 main_account = 'helloworld11'
 test_account = 'helloworld12'
-eth = EthAccount(main_account)
+eth = Eth(main_account)
 
 greeter = open('greeter.sol', 'r').read()
 main_class = '<stdin>:Greeter'
@@ -78,8 +78,8 @@ class EVMTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         try:
-            vm_abi = open('/Users/newworld/dev/eos-with-evm/externals/aleth/evm4eos/ethereum_vm.abi', 'rb').read()
-            vm_code = open('/Users/newworld/dev/eos-with-evm/build/externals/aleth/evm4eos_contract/ethereum_vm.wasm', 'rb').read()
+            vm_abi = open('./contracts/ethereum_vm/ethereum_vm.abi', 'rb').read()
+            vm_code = open('./contracts/ethereum_vm/ethereum_vm.wasm', 'rb').read()
             r = eosapi.publish_contract('helloworld11', vm_code, vm_abi, vmtype=0, vmversion=0, sign=True, compress=1)
             print(r['processed']['elapsed'])
         except Exception as e:

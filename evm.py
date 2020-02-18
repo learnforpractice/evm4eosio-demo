@@ -155,7 +155,7 @@ def normalize_address(address):
         address = address[2:]
     return address.lower()
 
-class EthAccount():
+class Eth(object):
 
     def __init__(self, contract_account):
         self.contract_account = contract_account
@@ -347,6 +347,37 @@ class EthAccount():
 #                 indexed_by< "byaddress"_n,
 #                 const_mem_fun<ethcode, checksum256, &ethcode::by_address> > > ethcode_table;
 
+
+class EthAccount(object):
+
+    def __init__(self, contract_account, eth_address):
+        self.contract_account = contract_account
+        self.address = eth_address
+        self.eth = Eth(contract_account)
+
+    def get_address_info(self):
+        return self.eth.get_address_info(self.address)
+
+    def get_creator(self):
+        return self.eth.get_creator(self.address)
+
+    def get_index(self):
+        return self.eth.get_index(self.address)
+
+    def get_balance(self):
+        return self.eth.get_balance(self.address)
+
+    def get_nonce(self):
+        return self.eth.get_nonce(self.address)
+
+    def get_all_values(self):
+        return self.eth.get_all_values(self.address)
+
+    def get_value(self, key):
+        return self.eth.get_value(self.address, key)
+
+    def get_code(self):
+        return self.eth.get_code(self.address)
 
 
 provider = LocalProvider()
