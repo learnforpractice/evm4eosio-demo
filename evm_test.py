@@ -138,6 +138,27 @@ class EVMTestCase(unittest.TestCase):
         assert h[12:].hex() == cls.eth_address
         cls.contract_address = None
 
+        cls.main_eth_address = eth.get_binded_address(main_account)
+        if not cls.main_eth_address:
+            args = {'account': main_account, 'text': 'hello,world'}
+            try:
+                r = eosapi.push_action(main_account, 'create', args, {main_account:'active'})
+                cls.main_eth_address = r['processed']['action_traces'][0]['console']
+                print('eth address:', cls.main_eth_address)
+                print(r['processed']['elapsed'])
+            except Exception as e:
+                if hasattr(e, 'response'):
+                    parsed = json.loads(e.response)
+                    print('+++error:\n', json.dumps(parsed, indent=4))
+                else:
+                    print(e)
+                sys.exit(-1)
+            assert cls.main_eth_address == eth.get_binded_address(main_account)
+
+            assert eth.get_balance(cls.main_eth_address) == 0.0
+            assert eth.get_nonce(cls.main_eth_address) == 1
+
+
     @classmethod
     def tearDownClass(cls):
         pass
@@ -260,6 +281,50 @@ class EVMTestCase(unittest.TestCase):
             e = json.loads(e.response)
             assert e['error']['details'][0]['message'] == 'missing authority of helloworld12'
 
+    @classmethod
+    def test_transfer_eth(cls):
+        evm.set_current_account('helloworld12')
+        eosapi.transfer('helloworld12', 'helloworld11', 1.0)
+        balance1 = eth.get_balance(cls.eth_address)
+        balance2 = eth.get_balance(cls.main_eth_address)
+
+        transaction = {
+                'from':cls.eth_address,
+                'to': w3.toChecksumAddress(cls.main_eth_address),
+                'value': 1000,
+                'gas': 2000000,
+                'gasPrice': 234567897654321,
+                'nonce': 0,
+                'chainId': 1
+        }
+        w3.eth.sendTransaction(transaction)
+
+        def equal(f1, f2):
+            return abs(f1 - f2) <= 1e-9
+
+        logger.info((balance1, eth.get_balance(cls.eth_address)))
+
+        assert equal(balance1, eth.get_balance(cls.eth_address)+0.1)
+        assert equal(balance2+0.1, eth.get_balance(cls.main_eth_address))
+
+    @classmethod
+    def test_transfer_eth_to_not_created_address(cls):
+        evm.set_current_account('helloworld12')
+        eosapi.transfer('helloworld12', 'helloworld11', 1.0, 'hello')
+        transaction = {
+                'from':cls.eth_address,
+                'to': '0xF0109fC8DF283027b6285cc889F5aA624EaC1F55',
+                'value': 1000,
+                'gas': 2000000,
+                'gasPrice': 0,
+                'nonce': 0,
+                'chainId': 1
+        }
+        try:
+            w3.eth.sendTransaction(transaction)
+        except Exception as e:
+            e = json.loads(e.response)
+            assert e['error']['details'][0]['message'] == "assertion failure with message: get_balance:address does not created!"
 
     def setUp(self):
         pass
