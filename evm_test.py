@@ -155,7 +155,7 @@ class BaseTestCase(unittest.TestCase):
 
             assert eth.get_balance(shared.main_eth_address) == 0.0
             assert eth.get_nonce(shared.main_eth_address) == 1
-
+        eosapi.transfer(test_account, main_account, 10.0, 'deposit')
         BaseTestCase.initialized = True
 
     @classmethod
@@ -396,7 +396,6 @@ class EVMTestCase2(BaseTestCase):
         args = {'from': _from, 'to': _to, 'value': 10000}
         logs = Tester.functions.transfer().transact(args)
         logger.info(logs)
-
         balance11 = eth.get_balance(shared.eth_address)
         balance21 = eth.get_balance(shared.tester_contract_address)
         logger.info((balance11, balance21))
@@ -409,6 +408,7 @@ class EVMTestCase2(BaseTestCase):
 
         assert balance22 == 0
         assert balance12 == balance11 + balance21
+        assert not eth.get_code(shared.tester_contract_address)
 
 
 def suite():
