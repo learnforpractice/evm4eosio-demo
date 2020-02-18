@@ -17,8 +17,8 @@
       "base": "",
       "fields": [
         {"name":"index", "type":"uint64"},
-        {"name":"key",   "type":"checksum256"},
-        {"name":"value", "type":"checksum256"}
+        {"name":"key",   "type":"bytes"},
+        {"name":"value", "type":"bytes"}
        ]
     },{
       "name": "ethcode",
