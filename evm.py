@@ -31,6 +31,7 @@ keys = {
 g_chain_id = 1
 g_current_account = None
 g_contract_name = None
+g_last_trx_ret = None
 
 def format_log(aa):
     for i in range(len(aa)):
@@ -51,9 +52,13 @@ def set_contract_name(account):
     global g_contract_name
     g_contract_name = account
 
+def get_last_trx_result():
+    return g_last_trx_ret
+
 def publish_evm_code(transaction):
     global g_chain_id
     global g_current_account
+    global g_last_trx_ret
     
     transaction['nonce'] = 0
     transaction['gasPrice'] = 1
@@ -85,8 +90,17 @@ def publish_evm_code(transaction):
         contract_name = 'helloworld11'
     
     args = {'trx': encoded_transaction, 'sender': sender}
-    r = eosapi.push_action(contract_name, 'raw', args, {account_name:'active'})
-    return r
+    ret = eosapi.push_action(contract_name, 'raw', args, {account_name:'active'})
+    g_last_trx_ret = ret
+    logs = ret['processed']['action_traces'][0]['console']
+    print('++++elapsed:', ret['processed']['elapsed'])
+    try:
+        logs = bytes.fromhex(logs)
+        logs = rlp.decode(logs)
+    except Exception as e:
+        print(logs)
+        raise e
+    return logs
 
 class LocalProvider(web3.providers.base.JSONBaseProvider):
     endpoint_uri = None

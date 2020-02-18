@@ -231,12 +231,7 @@ class EVMTestCase(BaseTestCase):
         expected_address = h[12:].hex()
 
         #test deploy evm contract
-        ret = Greeter.constructor().transact({'from': cls.eth_address})
-        # logger.info(("+++++ret:", ret))
-        logs = ret['processed']['action_traces'][0]['console']
-        logs = bytes.fromhex(logs)
-        logs = rlp.decode(logs)
-        logger.info(logs)
+        logs = Greeter.constructor().transact({'from': cls.eth_address})
         cls.contract_address = logs[0].hex()
 
         logger.info((expected_address, cls.contract_address))
@@ -261,15 +256,9 @@ class EVMTestCase(BaseTestCase):
         #test storage
         args = {'from': cls.eth_address,'to': checksum_contract_address}
 
-        ret = Greeter.functions.setValue(0xaabbccddee).transact(args)
-        logs = ret['processed']['action_traces'][0]['console']
-        logger.info(logs)
-        logs = bytes.fromhex(logs)
-        logs = rlp.decode(logs)
-        print(logs)
+        logs = Greeter.functions.setValue(0xaabbccddee).transact(args)
         evm.format_log(logs)
         print(logs)
-        print(ret['processed']['elapsed'])
 
         values = eth.get_all_values(cls.contract_address)
         logger.info(values)
@@ -354,19 +343,12 @@ class EVMTestCase(BaseTestCase):
         balance2 = eth.get_balance(cls.contract_address)
 
         args = {'from': cls.eth_address,'to': checksum_contract_address}
-        ret = Greeter.functions.transferBack(1000).transact(args)
+        logs = Greeter.functions.transferBack(1000).transact(args)
 
         float_equal(balance1+0.1, eth.get_balance(cls.eth_address))
         float_equal(balance2-0.1, eth.get_balance(cls.contract_address))
-
-        logs = ret['processed']['action_traces'][0]['console']
-        logger.info(logs)
-        logs = bytes.fromhex(logs)
-        logs = rlp.decode(logs)
-        print(logs)
         evm.format_log(logs)
         print(logs)
-        print(ret['processed']['elapsed'])
 
     def setUp(self):
         pass
@@ -386,19 +368,11 @@ class EVMTestCase2(BaseTestCase):
     def setUpClass(cls):
         super(EVMTestCase2, cls).setUpClass()
 
-        ret = Tester.constructor().transact({'from': cls.eth_address})
-        logs = ret['processed']['action_traces'][0]['console']
-        logs = bytes.fromhex(logs)
-        logs = rlp.decode(logs)
-#        logger.info(logs)
+        logs = Tester.constructor().transact({'from': cls.eth_address})
         cls.tester_contract_address = logs[0].hex()
         logger.info(cls.tester_contract_address)
 
-        ret = Callee.constructor().transact({'from': cls.eth_address})
-        logs = ret['processed']['action_traces'][0]['console']
-        logs = bytes.fromhex(logs)
-        logs = rlp.decode(logs)
-#        logger.info(logs)
+        logs = Callee.constructor().transact({'from': cls.eth_address})
         cls.callee_contract_address = logs[0].hex()
         logger.info(cls.callee_contract_address)
 
@@ -411,11 +385,7 @@ class EVMTestCase2(BaseTestCase):
         args = {'from': _from, 'to': _to}
 
         value = 2
-        ret = Tester.functions.testCall(callee_address, value).transact(args)
-        logs = ret['processed']['action_traces'][0]['console']
-
-        logs = bytes.fromhex(logs)
-        logs = rlp.decode(logs)
+        logs = Tester.functions.testCall(callee_address, value).transact(args)
         ret_value = int.from_bytes(logs[1], 'big')
         assert ret_value == value + 1
 
