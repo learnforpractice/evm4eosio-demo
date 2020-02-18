@@ -1,7 +1,8 @@
-pragma solidity ^0.4.8;
+pragma solidity ^0.6.0;
 contract Callee {
     uint myvalue;
-    function Callee() public {
+
+    constructor() public {
     }
     
     function setValue(uint v) public returns(uint) {

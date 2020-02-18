@@ -1,14 +1,15 @@
-pragma solidity ^0.4.8;
+pragma solidity ^0.6.0;
 contract Callee {
     function setValue(uint) public returns (uint) {}
 }
 
 contract Tester {
     uint myvalue;
-    address owner;
+    address payable owner;
     address calleeAddress;
     address calleeAddress2;
-    function Greeter() public {
+
+    constructor() public {
       owner = msg.sender;
     }
 
@@ -49,6 +50,6 @@ contract Tester {
        }
     }
     
-    function () payable public {//get called when transfer with no parameters
-    }
+    // function () payable public {
+    // }
 }

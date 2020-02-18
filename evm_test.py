@@ -59,25 +59,18 @@ main_account = 'helloworld11'
 test_account = 'helloworld12'
 eth = Eth(main_account)
 
-greeter = open('greeter.sol', 'r').read()
-main_class = '<stdin>:Greeter'
-contract_source_code = greeter
-contract_interface = compile_contract(contract_source_code, main_class)
-bytecode = contract_interface['bin']
-abi = contract_interface['abi']
+def load_contract(file_name, main_class):
+    src = open(file_name, 'r').read()
+    contract_interface = compile_contract(src, f'<stdin>:{main_class}')
+    bytecode = contract_interface['bin']
+    abi = contract_interface['abi']
+    return w3.eth.contract(abi=abi, bytecode=bytecode)
 
-logger.info(f'{bcolors.OKGREEN}+++++++++++++++++++++test deploy evm bytecode+++++++++++++++{bcolors.ENDC}')
-Greeter = w3.eth.contract(abi=abi, bytecode=bytecode)
+Greeter = load_contract('sol/greeter.sol', 'Greeter')
+Tester = load_contract('sol/tester.sol', 'Tester')
+Callee = load_contract('sol/callee.sol', 'Callee')
 
-
-class EVMTestCase(unittest.TestCase):
-    def __init__(self, testName, extra_args=[]):
-        super(EVMTestCase, self).__init__(testName)
-        self.extra_args = extra_args
-        
-        evm.set_current_account(test_account)
-        evm.set_chain_id(1)
-
+class BaseTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         try:
@@ -165,7 +158,15 @@ class EVMTestCase(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         pass
-    
+
+class EVMTestCase(BaseTestCase):
+    def __init__(self, testName, extra_args=[]):
+        super(EVMTestCase, self).__init__(testName)
+        self.extra_args = extra_args
+        
+        evm.set_current_account(test_account)
+        evm.set_chain_id(1)
+
     @classmethod
     def deposit(cls, account, amount):
         evm.set_current_account(test_account)
@@ -372,6 +373,51 @@ class EVMTestCase(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+class EVMTestCase2(BaseTestCase):
+    def __init__(self, testName, extra_args=[]):
+        super().__init__(testName)
+        self.extra_args = extra_args
+        
+        evm.set_current_account(test_account)
+        evm.set_chain_id(1)
+
+    @classmethod
+    def setUpClass(cls):
+        super(EVMTestCase2, cls).setUpClass()
+
+        ret = Tester.constructor().transact({'from': cls.eth_address})
+        logs = ret['processed']['action_traces'][0]['console']
+        logs = bytes.fromhex(logs)
+        logs = rlp.decode(logs)
+#        logger.info(logs)
+        cls.tester_contract_address = logs[0].hex()
+        logger.info(cls.tester_contract_address)
+
+        ret = Callee.constructor().transact({'from': cls.eth_address})
+        logs = ret['processed']['action_traces'][0]['console']
+        logs = bytes.fromhex(logs)
+        logs = rlp.decode(logs)
+#        logger.info(logs)
+        cls.callee_contract_address = logs[0].hex()
+        logger.info(cls.callee_contract_address)
+
+
+    @classmethod
+    def test_call_other_contract(cls):
+        _from = w3.toChecksumAddress(cls.eth_address)
+        _to = w3.toChecksumAddress(cls.tester_contract_address)
+        callee_address = w3.toChecksumAddress(cls.callee_contract_address)
+        args = {'from': _from, 'to': _to}
+
+        value = 2
+        ret = Tester.functions.testCall(callee_address, value).transact(args)
+        logs = ret['processed']['action_traces'][0]['console']
+
+        logs = bytes.fromhex(logs)
+        logs = rlp.decode(logs)
+        ret_value = int.from_bytes(logs[1], 'big')
+        assert ret_value == value + 1
 
 if __name__ == '__main__':
     unittest.main()
