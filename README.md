@@ -1,6 +1,4 @@
-## Compile eos-with-evm source
-
-Refer to https://github.com/learnforpractice/eos-with-evm for a build instruction and run a testnet
+# Get Started
 
 ## Clone Demo From Github
 ```
@@ -42,19 +40,30 @@ python3.7 -m pip install py-solc-x
 ### Install Web3
 
 ```
-python3.7 -m pip install --pre web3[tester]
+python3.7 -m pip install --pre web3[tester]==5.5.0
+```
+
+## Start a Testnet
+```
+nodeos  --verbose-http-errors  --http-max-response-time-ms 100 --data-dir dd --config-dir cd --wasm-runtime eos-vm-jit --contracts-console -p eosio -e --plugin eosio::producer_plugin --plugin eosio::chain_api_plugin --plugin eosio::producer_api_plugin
 ```
 
 ## Initialize the Testnet
-cd to directory tests of eos-with-evm source code, run:
+At the same directory, run the following command:
 ```
 python3.7 testnet-init.py
 ```
 
-### Open Jupyter Notebook
+## Open Jupyter Notebook
 In eos-with-evm-demo directory, run the following command
 ```
 python3.7 -m notebook
 ```
 
 Open hello_evm.ipynb and run code in cell one by one
+
+## Run TestCase
+
+```
+python3.7 evm_test.py
+```
