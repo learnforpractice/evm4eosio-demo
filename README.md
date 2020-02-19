@@ -80,6 +80,8 @@ For how to build the Smart Contract, please refer to the following link:
 [evm4eosio](https://github.com/learnforpractice/evm4eosio)
 
 
+For test on the new builded ethereum_vm.wasm, copy evm4eos_contract/ethereum_vm.wasm and evm4eos_contract/ethereum_vm.abi from build directory to contracts/ethereum_vm
+
 ## Open Jupyter Notebook
 In eos-with-evm-demo directory, run the following command
 ```
