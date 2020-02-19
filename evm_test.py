@@ -193,8 +193,8 @@ class EVMTestCase(BaseTestCase):
         evm.set_current_account(test_account)
         balance = eth.get_balance(shared.eth_address)
         logger.info(('++++balance:', balance, eosapi.config.main_token))
-        r = eosapi.transfer(test_account, main_account, 10.0, 'deposit')
-        assert eth.get_balance(shared.eth_address) == balance + 10.0
+        r = eosapi.transfer(test_account, main_account, 10.1, 'deposit')
+        assert eth.get_balance(shared.eth_address) == balance + 10.1
 
     def test_withdraw(self):
         ### Withdraw test
@@ -355,12 +355,16 @@ class EVMTestCase(BaseTestCase):
         print(logs)
 
     def test_block_info(self):
+        evm.set_current_account(test_account)
+
         _from = w3.toChecksumAddress(shared.eth_address)
         _to = w3.toChecksumAddress(shared.contract_address)
         args = {'from': _from, 'to': _to}
         logs = Greeter.functions.testBlockInfo().transact(args)
 
     def test_ecrecover(self):
+        evm.set_current_account(test_account)
+
         _from = w3.toChecksumAddress(shared.eth_address)
         _to = w3.toChecksumAddress(shared.contract_address)
         args = {'from': _from, 'to': _to}
@@ -380,6 +384,40 @@ class EVMTestCase(BaseTestCase):
         logger.info(pub_key)
         logger.info(address)
         assert logs[1][12:] == address
+
+    def test_ripemd160(self):
+        evm.set_current_account(test_account)
+
+        _from = w3.toChecksumAddress(shared.eth_address)
+        _to = w3.toChecksumAddress(shared.contract_address)
+        args = {'from': _from, 'to': _to}
+
+        logs = Greeter.functions.ripemd160Test(b'a message').transact(args)
+        logger.info(logs)
+
+        import hashlib
+        h = hashlib.new('ripemd160')
+        h.update(b'a message')
+        digest = h.digest()
+        logger.info((digest))
+        assert logs[1][:20] == digest
+
+    def test_sha256(self):
+        evm.set_current_account(test_account)
+
+        _from = w3.toChecksumAddress(shared.eth_address)
+        _to = w3.toChecksumAddress(shared.contract_address)
+        args = {'from': _from, 'to': _to}
+
+        logs = Greeter.functions.sha256Test(b'another message').transact(args)
+        logger.info(logs)
+
+        import hashlib
+        h = hashlib.sha256()
+        h.update(b'another message')
+        digest = h.digest()
+        logger.info((digest))
+        assert logs[1] == digest
 
     def setUp(self):
         pass

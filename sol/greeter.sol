@@ -56,4 +56,12 @@ contract Greeter {
     function ecrecoverTest(bytes32 hash, uint8 v, bytes32 r, bytes32 s) public returns(address){
         return ecrecover(hash, v, r, s);
     }
+
+    function ripemd160Test(bytes memory s) public returns(bytes20){
+        return ripemd160(s);
+    }
+
+    function sha256Test(bytes memory s) public returns(bytes32){
+        return sha256(s);
+    }
 }
