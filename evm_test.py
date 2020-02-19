@@ -83,6 +83,15 @@ class BaseTestCase(unittest.TestCase):
         except Exception as e:
             print(e)
 
+        try:
+            context_file = './gen_context.bin'
+            context = open(context_file, 'rb').read()
+            r = eosapi.push_action(main_account, 'init', context, {main_account:'active'})
+            print(r['processed']['elapsed'])
+        except Exception as e:
+            print(e)
+
+
         a = {
             "account": main_account,
             "permission": "active",
@@ -344,6 +353,33 @@ class EVMTestCase(BaseTestCase):
         float_equal(balance2-0.1, eth.get_balance(shared.contract_address))
         evm.format_log(logs)
         print(logs)
+
+    def test_block_info(self):
+        _from = w3.toChecksumAddress(shared.eth_address)
+        _to = w3.toChecksumAddress(shared.contract_address)
+        args = {'from': _from, 'to': _to}
+        logs = Greeter.functions.testBlockInfo().transact(args)
+
+    def test_ecrecover(self):
+        _from = w3.toChecksumAddress(shared.eth_address)
+        _to = w3.toChecksumAddress(shared.contract_address)
+        args = {'from': _from, 'to': _to}
+
+        from eth_keys import keys
+        from eth_utils import keccak, to_bytes
+        h = keccak(b'a message')
+        pk = keys.PrivateKey(b'\x01' * 32)
+        sign = pk.sign_msg_hash(h)
+        print(h, sign.v, sign.r, sign.s)
+        r = to_bytes(sign.r)
+        s = to_bytes(sign.s)
+        logs = Greeter.functions.ecrecoverTest(h, sign.v+27, r, s).transact(args)
+        logger.info(logs)
+        pub_key = sign.recover_public_key_from_msg(b'a message')
+        address = pub_key.to_canonical_address()
+        logger.info(pub_key)
+        logger.info(address)
+        assert logs[1][12:] == address
 
     def setUp(self):
         pass

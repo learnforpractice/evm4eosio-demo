@@ -31,18 +31,15 @@ contract Greeter {
     }
 
     function setValue(uint v) payable public {
-        /*
-        require(block.gaslimit == 0x7fffffffffffffff);
-        require(block.coinbase == 0x0633A42c777f64f895dE1B0097de00C8D181A5e9);
-        require(block.difficulty == 0x020000);
-        require(blockhash(0) == 0);
-        require(ecrecover(0, 0, 0, 0) == address(0));
-        bytes memory a;
-        keccak256(a);
-        */
-//        emit onEmitBytes(abi.encode(1, 2, 3));
         emit onSetValue(v);
         value = v;
+    }
+    
+    function testBlockInfo() public {
+        require(block.gaslimit == 0x7fffffffffffffff);
+        require(block.coinbase == address(0));
+        require(block.difficulty == 0);
+        require(blockhash(0) == 0);
     }
 
     function transfer() payable public {
@@ -54,5 +51,9 @@ contract Greeter {
         msg.sender.transfer(balance);
         uint256 newBalance = msg.sender.balance;
         require(oldBalance + balance == newBalance, "bad balance result");
+    }
+
+    function ecrecoverTest(bytes32 hash, uint8 v, bytes32 r, bytes32 s) public returns(address){
+        return ecrecover(hash, v, r, s);
     }
 }
