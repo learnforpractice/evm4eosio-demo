@@ -54,99 +54,138 @@ def on_test(func):
         return func(self, *args, **kwargs)
     return decorator
 
+def deploy_evm_contract():
+    logger.info(shared.contract_address)
+    if shared.contract_address:
+        return
+    evm.set_current_account(test_account)
+
+    nonce = eth.get_nonce(shared.eth_address)
+    e = rlp.encode([bytes.fromhex(shared.eth_address), nonce])
+    h = keccak(e)
+    expected_address = h[12:].hex()
+
+    #test deploy evm contract
+    logs = Greeter.constructor().transact({'from': shared.eth_address})
+    shared.contract_address = logs[0].hex()
+
+    logger.info((expected_address, shared.contract_address))
+
+    assert expected_address == shared.contract_address
+    assert eth.get_nonce(shared.eth_address) == nonce + 1
+
+    #test get contract code
+    code = eth.get_code(shared.contract_address)
+    # logger.info(code)
+    # logger.info( logs[1].hex())
+
+    assert code
+    #  == logs[1].hex()
+
+    logs = Tester.constructor().transact({'from': shared.eth_address})
+    shared.tester_contract_address = logs[0].hex()
+    logger.info(shared.tester_contract_address)
+
+    logs = Callee.constructor().transact({'from': shared.eth_address})
+    shared.callee_contract_address = logs[0].hex()
+    logger.info(shared.callee_contract_address)
+
+
 def init_testcase():
-        if shared.eth_address:
-            return
-        try:
-            vm_abi = open('./contracts/ethereum_vm/ethereum_vm.abi', 'rb').read()
-            vm_code = open('./contracts/ethereum_vm/ethereum_vm.wasm', 'rb').read()
-            r = eosapi.publish_contract('helloworld11', vm_code, vm_abi, vmtype=0, vmversion=0, sign=True, compress=1)
-            print(r['processed']['elapsed'])
-        except Exception as e:
-            print(e)
+    if shared.eth_address:
+        return
+    try:
+        vm_abi = open('./contracts/ethereum_vm/ethereum_vm.abi', 'rb').read()
+        vm_code = open('./contracts/ethereum_vm/ethereum_vm.wasm', 'rb').read()
+        r = eosapi.publish_contract('helloworld11', vm_code, vm_abi, vmtype=0, vmversion=0, sign=True, compress=1)
+        print(r['processed']['elapsed'])
+    except Exception as e:
+        print(e)
 
-        try:
-            context_file = './gen_context.bin'
-            context = open(context_file, 'rb').read()
-            r = eosapi.push_action(main_account, 'init', context, {main_account:'active'})
-            print(r['processed']['elapsed'])
-        except Exception as e:
-            print(e)
+    try:
+        context_file = './gen_context.bin'
+        context = open(context_file, 'rb').read()
+        r = eosapi.push_action(main_account, 'init', context, {main_account:'active'})
+        print(r['processed']['elapsed'])
+    except Exception as e:
+        print(e)
 
 
-        a = {
-            "account": main_account,
-            "permission": "active",
-            "parent": "owner",
-            "auth": {
-                "threshold": 1,
-                "keys": [
-                    {
-                        "key": "EOS7ent7keWbVgvptfYaMYeF2cenMBiwYKcwEuc11uCbStsFKsrmV",
-                        "weight": 1
-                    },
-                ],
-                "accounts": [{"permission":{"actor":main_account,"permission":"eosio.code"},"weight":1}],
-                "waits": []
-            }
+    a = {
+        "account": main_account,
+        "permission": "active",
+        "parent": "owner",
+        "auth": {
+            "threshold": 1,
+            "keys": [
+                {
+                    "key": "EOS7ent7keWbVgvptfYaMYeF2cenMBiwYKcwEuc11uCbStsFKsrmV",
+                    "weight": 1
+                },
+            ],
+            "accounts": [{"permission":{"actor":main_account,"permission":"eosio.code"},"weight":1}],
+            "waits": []
         }
-        r = eosapi.push_action('eosio', 'updateauth', a, {main_account:'owner'})
+    }
+    r = eosapi.push_action('eosio', 'updateauth', a, {main_account:'owner'})
 
-        args = {'chainid': 1}
+    args = {'chainid': 1}
+    try:
+        r = eosapi.push_action(main_account, 'setchainid', args, {main_account:'active'})
+        print('++++console:', r['processed']['action_traces'][0]['console'])
+        print(r['processed']['elapsed'])
+    except Exception as e:
+        print(e)
+
+    shared.eth_address = eth.get_binded_address(test_account)
+    if not shared.eth_address:
+        args = {'account': test_account, 'text': 'hello,world'}
         try:
-            r = eosapi.push_action(main_account, 'setchainid', args, {main_account:'active'})
-            print('++++console:', r['processed']['action_traces'][0]['console'])
+            r = eosapi.push_action(main_account, 'create', args, {test_account:'active'})
+            shared.eth_address = r['processed']['action_traces'][0]['console']
+            print('eth address:', shared.eth_address)
             print(r['processed']['elapsed'])
         except Exception as e:
-            print(e)
+            if hasattr(e, 'response'):
+                parsed = json.loads(e.response)
+                print('+++error:\n', json.dumps(parsed, indent=4))
+            else:
+                print(e)
+            sys.exit(-1)
+        assert shared.eth_address == eth.get_binded_address(test_account)
 
-        shared.eth_address = eth.get_binded_address(test_account)
-        if not shared.eth_address:
-            args = {'account': test_account, 'text': 'hello,world'}
-            try:
-                r = eosapi.push_action(main_account, 'create', args, {test_account:'active'})
-                shared.eth_address = r['processed']['action_traces'][0]['console']
-                print('eth address:', shared.eth_address)
-                print(r['processed']['elapsed'])
-            except Exception as e:
-                if hasattr(e, 'response'):
-                    parsed = json.loads(e.response)
-                    print('+++error:\n', json.dumps(parsed, indent=4))
-                else:
-                    print(e)
-                sys.exit(-1)
-            assert shared.eth_address == eth.get_binded_address(test_account)
+        assert eth.get_balance(shared.eth_address) == 0.0
+        assert eth.get_nonce(shared.eth_address) == 1
 
-            assert eth.get_balance(shared.eth_address) == 0.0
-            assert eth.get_nonce(shared.eth_address) == 1
+    #verify eth address
+    e = rlp.encode([test_account, 'hello,world'])
+    h = keccak(e)
+    print(h[12:].hex(), shared.eth_address)
+    assert h[12:].hex() == shared.eth_address
+    shared.contract_address = None
 
-        #verify eth address
-        e = rlp.encode([test_account, 'hello,world'])
-        h = keccak(e)
-        print(h[12:].hex(), shared.eth_address)
-        assert h[12:].hex() == shared.eth_address
-        shared.contract_address = None
+    shared.main_eth_address = eth.get_binded_address(main_account)
+    if not shared.main_eth_address:
+        args = {'account': main_account, 'text': 'hello,world'}
+        try:
+            r = eosapi.push_action(main_account, 'create', args, {main_account:'active'})
+            shared.main_eth_address = r['processed']['action_traces'][0]['console']
+            print('eth address:', shared.main_eth_address)
+            print(r['processed']['elapsed'])
+        except Exception as e:
+            if hasattr(e, 'response'):
+                parsed = json.loads(e.response)
+                print('+++error:\n', json.dumps(parsed, indent=4))
+            else:
+                print(e)
+            sys.exit(-1)
+        assert shared.main_eth_address == eth.get_binded_address(main_account)
 
-        shared.main_eth_address = eth.get_binded_address(main_account)
-        if not shared.main_eth_address:
-            args = {'account': main_account, 'text': 'hello,world'}
-            try:
-                r = eosapi.push_action(main_account, 'create', args, {main_account:'active'})
-                shared.main_eth_address = r['processed']['action_traces'][0]['console']
-                print('eth address:', shared.main_eth_address)
-                print(r['processed']['elapsed'])
-            except Exception as e:
-                if hasattr(e, 'response'):
-                    parsed = json.loads(e.response)
-                    print('+++error:\n', json.dumps(parsed, indent=4))
-                else:
-                    print(e)
-                sys.exit(-1)
-            assert shared.main_eth_address == eth.get_binded_address(main_account)
+        assert eth.get_balance(shared.main_eth_address) == 0.0
+        assert eth.get_nonce(shared.main_eth_address) == 1
+    eosapi.transfer(test_account, main_account, 10.0, 'deposit')
 
-            assert eth.get_balance(shared.main_eth_address) == 0.0
-            assert eth.get_nonce(shared.main_eth_address) == 1
-        eosapi.transfer(test_account, main_account, 10.0, 'deposit')
+    deploy_evm_contract()
 
 
 class BaseTestCase(unittest.TestCase):
@@ -171,7 +210,6 @@ class EVMTestCase(BaseTestCase):
         
         evm.set_current_account(test_account)
         evm.set_chain_id(1)
-        self.deploy_evm_contract()
 
     @classmethod
     def setUpClass(cls):
@@ -228,35 +266,6 @@ class EVMTestCase(BaseTestCase):
             assert eth_balance == eth.get_balance(shared.eth_address)
             e = json.loads(e.response)
             assert e['error']['details'][0]['message'] == "assertion failure with message: balance overdraw!"
-
-    @on_test
-    def deploy_evm_contract(self):
-        logger.info(shared.contract_address)
-        if shared.contract_address:
-            return
-        evm.set_current_account(test_account)
-
-        nonce = eth.get_nonce(shared.eth_address)
-        e = rlp.encode([bytes.fromhex(shared.eth_address), nonce])
-        h = keccak(e)
-        expected_address = h[12:].hex()
-
-        #test deploy evm contract
-        logs = Greeter.constructor().transact({'from': shared.eth_address})
-        shared.contract_address = logs[0].hex()
-
-        logger.info((expected_address, shared.contract_address))
-
-        assert expected_address == shared.contract_address
-        assert eth.get_nonce(shared.eth_address) == nonce + 1
-
-        #test get contract code
-        code = eth.get_code(shared.contract_address)
-        # logger.info(code)
-        # logger.info( logs[1].hex())
-
-        assert code
-        #  == logs[1].hex()
 
     @on_test
     def test_set_value(self):
@@ -337,7 +346,6 @@ class EVMTestCase(BaseTestCase):
 
     @on_test
     def test_transfer_back(self):
-        self.deploy_evm_contract()
         evm.set_current_account(test_account)
 
         checksum_contract_address = w3.toChecksumAddress(shared.contract_address)
@@ -441,19 +449,6 @@ class EVMTestCase2(BaseTestCase):
         
         evm.set_current_account(test_account)
         evm.set_chain_id(1)
-        self.init_testcase2()
-
-    def init_testcase2(self):
-        if shared.callee_contract_address:
-            return
-
-        logs = Tester.constructor().transact({'from': shared.eth_address})
-        shared.tester_contract_address = logs[0].hex()
-        logger.info(shared.tester_contract_address)
-
-        logs = Callee.constructor().transact({'from': shared.eth_address})
-        shared.callee_contract_address = logs[0].hex()
-        logger.info(shared.callee_contract_address)
 
     @classmethod
     def setUpClass(cls):
