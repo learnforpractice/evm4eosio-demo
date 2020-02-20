@@ -1,16 +1,16 @@
 import sys
 import json
+import rlp
+import hashlib
+import logging
+import unittest
 import evm
 from evm import Eth, EthAccount
 from evm import w3
-import rlp
-import hashlib
+
 from eth_utils import keccak
-import logging
 from solcx import compile_source, compile_files
-import unittest
-# from threading import RLock
-from multiprocessing import RLock
+from init import *
 
 class bcolors:
     HEADER = '\033[95m'
@@ -23,11 +23,7 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(lineno)d %(module)s %(message)s')
-
 logger=logging.getLogger(__name__)
-
-
-from init import *
 
 def float_equal(f1, f2):
     return abs(f1 - f2) <= 1e-9
@@ -37,11 +33,6 @@ def compile_contract(contract_source_code, main_class):
     contract_interface = compiled_sol[main_class]
     return contract_interface
 
-
-main_account = 'helloworld11'
-test_account = 'helloworld12'
-eth = Eth(main_account)
-
 def load_contract(file_name, main_class):
     src = open(file_name, 'r').read()
     contract_interface = compile_contract(src, f'<stdin>:{main_class}')
@@ -49,9 +40,6 @@ def load_contract(file_name, main_class):
     abi = contract_interface['abi']
     return w3.eth.contract(abi=abi, bytecode=bytecode)
 
-Greeter = load_contract('sol/greeter.sol', 'Greeter')
-Tester = load_contract('sol/tester.sol', 'Tester')
-Callee = load_contract('sol/callee.sol', 'Callee')
 
 class ShareValues(object):
     eth_address = None
@@ -60,19 +48,13 @@ class ShareValues(object):
     callee_contract_address = None
     tester_contract_address = None
 
-shared = ShareValues()
+def on_test(func):
+    def decorator(self, *args, **kwargs):
+        logger.info(f'{bcolors.OKGREEN}++++++++++{type(self).__name__}.{func.__name__}++++++++++++++{bcolors.ENDC}')
+        return func(self, *args, **kwargs)
+    return decorator
 
-class BaseTestCase(unittest.TestCase):
-    initialized = False
-
-    def __init__(self, testName, extra_args=[]):
-        super(BaseTestCase, self).__init__(testName)
-        self.init_testcase()
-
-    @classmethod
-    def init_testcase(cls):
-        logger.info(f'{bcolors.OKGREEN}++++++++++BaseTestCase.init_testcase++++++++++++++{bcolors.ENDC}')
-        # cls = type(self)
+def init_testcase():
         if shared.eth_address:
             return
         try:
@@ -165,7 +147,18 @@ class BaseTestCase(unittest.TestCase):
             assert eth.get_balance(shared.main_eth_address) == 0.0
             assert eth.get_nonce(shared.main_eth_address) == 1
         eosapi.transfer(test_account, main_account, 10.0, 'deposit')
-        BaseTestCase.initialized = True
+
+
+class BaseTestCase(unittest.TestCase):
+
+    def __init__(self, testName, extra_args=[]):
+        super(BaseTestCase, self).__init__(testName)
+        self.init_testcase()
+
+    @classmethod
+    def init_testcase(cls):
+        # cls = type(self)
+        pass
 
     @classmethod
     def tearDownClass(cls):
@@ -188,14 +181,18 @@ class EVMTestCase(BaseTestCase):
         evm.set_current_account(test_account)
         r = eosapi.transfer(account, main_account, amount, 'deposit')
 
+    @on_test
     def test_deposit(self):
         # Deposit Test
         evm.set_current_account(test_account)
         balance = eth.get_balance(shared.eth_address)
-        logger.info(('++++balance:', balance, eosapi.config.main_token))
         r = eosapi.transfer(test_account, main_account, 10.1, 'deposit')
-        assert eth.get_balance(shared.eth_address) == balance + 10.1
 
+        eth_balance = eth.get_balance(shared.eth_address)
+        logger.info(('++++balance:', balance, eth_balance))
+        assert float_equal(eth_balance, balance + 10.1)
+
+    @on_test
     def test_withdraw(self):
         ### Withdraw test
         evm.set_current_account(test_account)
@@ -213,6 +210,7 @@ class EVMTestCase(BaseTestCase):
         except Exception as e:
             print(e)
 
+    @on_test
     def test_overdraw(self):
         #Overdraw test
         evm.set_current_account(test_account)
@@ -231,8 +229,9 @@ class EVMTestCase(BaseTestCase):
             e = json.loads(e.response)
             assert e['error']['details'][0]['message'] == "assertion failure with message: balance overdraw!"
 
+    @on_test
     def deploy_evm_contract(self):
-        logger.info((self, shared.contract_address))
+        logger.info(shared.contract_address)
         if shared.contract_address:
             return
         evm.set_current_account(test_account)
@@ -259,6 +258,7 @@ class EVMTestCase(BaseTestCase):
         assert code
         #  == logs[1].hex()
 
+    @on_test
     def test_set_value(self):
         evm.set_current_account(test_account)
 
@@ -275,6 +275,7 @@ class EVMTestCase(BaseTestCase):
         # contract_address = w3.toChecksumAddress(output['new_address'])
         # print('+++contract_address:', contract_address)
 
+    @on_test
     def test_authorization(self):
         checksum_contract_address = w3.toChecksumAddress(shared.contract_address)
         logger.info(f'{bcolors.OKGREEN}++++++++++test call evm contract with wrong authorization{bcolors.ENDC}')
@@ -292,6 +293,7 @@ class EVMTestCase(BaseTestCase):
         args = {'from': w3.toChecksumAddress(_from),'to': w3.toChecksumAddress(_to), 'value':_value}
         ret = Greeter.functions.transfer().transact(args)
 
+    @on_test
     def test_transfer_eth(self):
         evm.set_current_account('helloworld12')
         eosapi.transfer('helloworld12', 'helloworld11', 1.0)
@@ -314,6 +316,7 @@ class EVMTestCase(BaseTestCase):
         assert float_equal(balance1, eth.get_balance(shared.eth_address)+0.1)
         assert float_equal(balance2+0.1, eth.get_balance(shared.main_eth_address))
 
+    @on_test
     def test_transfer_eth_to_not_created_address(self):
         evm.set_current_account('helloworld12')
         eosapi.transfer('helloworld12', 'helloworld11', 1.0, 'hello')
@@ -332,6 +335,7 @@ class EVMTestCase(BaseTestCase):
             e = json.loads(e.response)
             assert e['error']['details'][0]['message'] == "assertion failure with message: get_balance:address does not created!"
 
+    @on_test
     def test_transfer_back(self):
         self.deploy_evm_contract()
         evm.set_current_account(test_account)
@@ -354,6 +358,7 @@ class EVMTestCase(BaseTestCase):
         evm.format_log(logs)
         print(logs)
 
+    @on_test
     def test_block_info(self):
         evm.set_current_account(test_account)
 
@@ -362,6 +367,7 @@ class EVMTestCase(BaseTestCase):
         args = {'from': _from, 'to': _to}
         logs = Greeter.functions.testBlockInfo().transact(args)
 
+    @on_test
     def test_ecrecover(self):
         evm.set_current_account(test_account)
 
@@ -385,6 +391,7 @@ class EVMTestCase(BaseTestCase):
         logger.info(address)
         assert logs[1][12:] == address
 
+    @on_test
     def test_ripemd160(self):
         evm.set_current_account(test_account)
 
@@ -402,6 +409,7 @@ class EVMTestCase(BaseTestCase):
         logger.info((digest))
         assert logs[1][:20] == digest
 
+    @on_test
     def test_sha256(self):
         evm.set_current_account(test_account)
 
@@ -427,8 +435,6 @@ class EVMTestCase(BaseTestCase):
 
 class EVMTestCase2(BaseTestCase):
     
-    tester_contract_address = None
-
     def __init__(self, testName, extra_args=[]):
         super().__init__(testName)
         self.extra_args = extra_args
@@ -453,6 +459,7 @@ class EVMTestCase2(BaseTestCase):
     def setUpClass(cls):
         super(EVMTestCase2, cls).setUpClass()
 
+    @on_test
     def test_call_other_contract(self):
         _from = w3.toChecksumAddress(shared.eth_address)
         _to = w3.toChecksumAddress(shared.tester_contract_address)
@@ -464,6 +471,7 @@ class EVMTestCase2(BaseTestCase):
         ret_value = int.from_bytes(logs[1], 'big')
         assert ret_value == value + 1
 
+    @on_test
     def test_suicide(self):
         _from = w3.toChecksumAddress(shared.eth_address)
         _to = w3.toChecksumAddress(shared.tester_contract_address)
@@ -501,9 +509,20 @@ def suite():
 
     return suite
 
+main_account = 'helloworld11'
+test_account = 'helloworld12'
+eth = Eth(main_account)
+
+Greeter = load_contract('sol/greeter.sol', 'Greeter')
+Tester = load_contract('sol/tester.sol', 'Tester')
+Callee = load_contract('sol/callee.sol', 'Callee')
+
+shared = ShareValues()
+
 if __name__ == '__main__':
     # runner = unittest.TextTestRunner(failfast=True)
     # runner.run(suite())
+    init_testcase()
     unittest.main()
 
 print('Done!')
