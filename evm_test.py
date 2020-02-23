@@ -66,6 +66,7 @@ def deploy_evm_contract():
     expected_address = h[12:].hex()
 
     #test deploy evm contract
+    logger.info(("++++++++++shared.eth_address:", shared.eth_address))
     logs = Greeter.constructor().transact({'from': shared.eth_address})
     shared.contract_address = logs[0].hex()
 
@@ -187,7 +188,6 @@ def init_testcase():
 
     deploy_evm_contract()
 
-
 class BaseTestCase(unittest.TestCase):
 
     def __init__(self, testName, extra_args=[]):
@@ -196,12 +196,30 @@ class BaseTestCase(unittest.TestCase):
 
     @classmethod
     def init_testcase(cls):
-        # cls = type(self)
         pass
 
     @classmethod
     def tearDownClass(cls):
         pass
+
+class EVMTestCaseCreate(unittest.TestCase):
+    def __init__(self, testName, extra_args=[]):
+        super(EVMTestCaseCreate, self).__init__(testName)
+        self.extra_args = extra_args
+        
+        evm.set_current_account(test_account)
+        evm.set_chain_id(1)
+
+    @classmethod
+    def setUpClass(cls):
+        BaseTestCase.setUpClass()
+
+    @on_test
+    def test_deploy_evm_contract(self):
+        # Deposit Test
+        logger.info(('++++++++++shared.eth_address:', shared.eth_address))
+        logs = Empty.constructor().transact({'from': shared.eth_address})
+        logger.info(logs[0].hex())
 
 class EVMTestCase(BaseTestCase):
     def __init__(self, testName, extra_args=[]):
@@ -342,7 +360,7 @@ class EVMTestCase(BaseTestCase):
             w3.eth.sendTransaction(transaction)
         except Exception as e:
             e = json.loads(e.response)
-            assert e['error']['details'][0]['message'] == "assertion failure with message: get_balance:address does not created!"
+            assert e['error']['details'][0]['message'] == "assertion failure with message: eth address does not exists!"
 
     @on_test
     def test_transfer_back(self):
@@ -511,6 +529,7 @@ eth = Eth(main_account)
 Greeter = load_contract('sol/greeter.sol', 'Greeter')
 Tester = load_contract('sol/tester.sol', 'Tester')
 Callee = load_contract('sol/callee.sol', 'Callee')
+Empty = load_contract('sol/empty.sol', 'Empty')
 
 shared = ShareValues()
 
