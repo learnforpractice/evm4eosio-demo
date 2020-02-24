@@ -394,6 +394,15 @@ class EVMTestCase(BaseTestCase):
         logs = Greeter.functions.testBlockInfo().transact(args)
 
     @on_test
+    def test_origin(self):
+        evm.set_current_account(test_account)
+
+        origin = _from = w3.toChecksumAddress(shared.eth_address)
+        _to = w3.toChecksumAddress(shared.contract_address)
+        args = {'from': _from, 'to': _to}
+        logs = Greeter.functions.testOrigin(origin).transact(args)
+
+    @on_test
     def test_ecrecover(self):
         evm.set_current_account(test_account)
 

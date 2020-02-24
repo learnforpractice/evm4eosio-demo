@@ -64,4 +64,8 @@ contract Greeter {
     function sha256Test(bytes memory s) public returns(bytes32){
         return sha256(s);
     }
+    
+    function testOrigin(address _origin) public {
+        require(tx.origin == _origin);
+    }
 }
