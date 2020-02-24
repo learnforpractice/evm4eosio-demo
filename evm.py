@@ -20,6 +20,11 @@ from eth_utils import (
 
 from cytoolz import dissoc
 from pyeoskit import eosapi, wallet, db, config
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(lineno)d %(module)s %(message)s')
+logger=logging.getLogger(__name__)
+
 
 keys = {
 #     'b654a7a81e0aeb7721a22f27a04ecf5af0e8a9a3':'2a2a401e99b8b032fcb20c320af2bc066222eba7c0496e012200e58caf1bfb5a',
@@ -93,12 +98,13 @@ def publish_evm_code(transaction):
     ret = eosapi.push_action(contract_name, 'raw', args, {account_name:'active'})
     g_last_trx_ret = ret
     logs = ret['processed']['action_traces'][0]['console']
-    print('++++elapsed:', ret['processed']['elapsed'])
+    logger.debug(logs)
+    logger.info(('++++elapsed:', ret['processed']['elapsed']))
     try:
         logs = bytes.fromhex(logs)
         logs = rlp.decode(logs)
     except Exception as e:
-        print(logs)
+        logger.error(logs)
         raise e
     return logs
 
@@ -221,7 +227,7 @@ class Eth(object):
         return 0
 
     def get_all_address_info(self):
-        ret = eosapi.get_table_rows(True, self.contract_account, self.contract_account, 'ethaccount', '', '', '', 100)
+        ret = eosapi.get_table_rows(True, self.contract_account, self.contract_account, 'ethaccount', '', '', '', 10000)
         return ret['rows']
 
 #table ethaccount
