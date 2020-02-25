@@ -45,6 +45,10 @@ contract Greeter {
     function transfer() payable public {
 
     }
+    
+    function checkBalance(uint balance) payable public {
+        require(msg.sender.balance == balance, "bad balance");
+    }
 
     function transferBack(uint balance) payable public {
         uint256 oldBalance = msg.sender.balance;
