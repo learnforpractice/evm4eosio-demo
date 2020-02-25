@@ -377,13 +377,35 @@ class EVMTestCase(BaseTestCase):
         balance1 = eth.get_balance(shared.eth_address)
         balance2 = eth.get_balance(shared.contract_address)
 
+        logger.info((balance1, balance2))
+
         args = {'from': shared.eth_address,'to': checksum_contract_address}
         logs = Greeter.functions.transferBack(1000).transact(args)
 
         float_equal(balance1+0.1, eth.get_balance(shared.eth_address))
         float_equal(balance2-0.1, eth.get_balance(shared.contract_address))
+
+        balance1 = eth.get_balance(shared.eth_address)
+        balance2 = eth.get_balance(shared.contract_address)
+        logger.info((balance1, balance2))
+
+        evm.format_log(logs)
+        logger.info(logs)
+
+    @on_test
+    def test_check_balance(self):
+        evm.set_current_account(test_account)
+        checksum_contract_address = w3.toChecksumAddress(shared.contract_address)
+        self.transfer_eth(shared.eth_address, checksum_contract_address, 10000)
+
+        args = {'from': shared.eth_address,'to': checksum_contract_address}
+        balance = eth.get_balance(shared.eth_address)
+        balance = int(balance*10000)
+        logs = Greeter.functions.checkBalance(balance).transact(args)
+
         evm.format_log(logs)
         print(logs)
+
 
     @on_test
     def test_block_info(self):
