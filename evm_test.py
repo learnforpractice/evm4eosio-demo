@@ -1,5 +1,6 @@
 import sys
 import json
+import time
 import rlp
 import hashlib
 import logging
@@ -484,6 +485,45 @@ class EVMTestCase(BaseTestCase):
         digest = h.digest()
         logger.info((digest))
         assert logs[1] == digest
+
+    @on_test
+    def test_check_chain_id(self):
+        args = {'chainid': 2}
+        r = eosapi.push_action(main_account, 'setchainid', args, {main_account:'active'})
+        print('++++console:', r['processed']['action_traces'][0]['console'])
+        print(r['processed']['elapsed'])
+
+        transaction = {
+                'from':shared.eth_address,
+                'to': w3.toChecksumAddress(shared.main_eth_address),
+                'value': 1000,
+                'gas': 2000000,
+                'gasPrice': 234567897654321,
+                'nonce': 0,
+                'chainId': 1
+        }
+        try:
+            w3.eth.sendTransaction(transaction)
+        except Exception as e:
+            e = json.loads(e.response)
+            assert e['error']['details'][0]['message'] == "assertion failure with message: bad chain id"
+
+        time.sleep(0.5)
+        args = {'chainid': 1}
+        r = eosapi.push_action(main_account, 'setchainid', args, {main_account:'active'})
+        print('++++console:', r['processed']['action_traces'][0]['console'])
+        print(r['processed']['elapsed'])
+
+        transaction = {
+                'from':shared.eth_address,
+                'to': w3.toChecksumAddress(shared.main_eth_address),
+                'value': 1000,
+                'gas': 2000000,
+                'gasPrice': 234567897654321,
+                'nonce': 0,
+                'chainId': 1
+        }
+        w3.eth.sendTransaction(transaction)
 
     def setUp(self):
         pass
