@@ -127,15 +127,23 @@ def publish_evm_code(transaction, eos_pub_key = None):
     global g_last_trx_ret
     global g_public_key
 
-    transaction['nonce'] = 0
-    transaction['gasPrice'] = 1
-    transaction['gas'] = 20000000
+
 #    transaction['chainId'] = chain_id #Ethereum mainnet
 #     print(transaction)
+
     sender = transaction['from']
     if sender[:2] == '0x':
         sender = sender[2:]
     sender = sender.lower()
+
+    a = evm.EthAccount('helloworld11', sender)
+    nonce = a.get_nonce()
+    assert nonce >= 1
+
+    transaction['nonce'] = nonce
+    transaction['gasPrice'] = 1
+    transaction['gas'] = 20000000
+
     if sender in keys:
         priv_key = key_maps[sender]
         encoded_transaction = Account.sign_transaction(transaction, priv_key)   
