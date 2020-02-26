@@ -136,7 +136,7 @@ def publish_evm_code(transaction, eos_pub_key = None):
         sender = sender[2:]
     sender = sender.lower()
 
-    a = evm.EthAccount('helloworld11', sender)
+    a = EthAccount('helloworld11', sender)
     nonce = a.get_nonce()
     assert nonce >= 1
 
