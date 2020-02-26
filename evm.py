@@ -4,6 +4,8 @@ import web3
 from web3 import Web3
 from solc import link_code
 import rlp
+import base58
+
 from eth_account._utils.transactions import (
     ChainAwareUnsignedTransaction,
     UnsignedTransaction,
@@ -11,6 +13,11 @@ from eth_account._utils.transactions import (
     serializable_unsigned_transaction_from_dict,
     strip_signature,
 )
+
+import eth_utils
+
+CHAIN_ID_OFFSET = 35
+V_OFFSET = 27
 
 from eth_account.account import Account
 
@@ -37,6 +44,7 @@ g_chain_id = 1
 g_current_account = None
 g_contract_name = None
 g_last_trx_ret = None
+g_public_key = None
 
 def format_log(aa):
     for i in range(len(aa)):
@@ -45,10 +53,16 @@ def format_log(aa):
         elif isinstance(aa[i], list):
             format_log(aa[i])
 
+'''
+set ETH chain id
+'''
 def set_chain_id(id):
     global g_chain_id
     g_chain_id = id
 
+'''
+set current account used to sign a EOS transaction
+'''
 def set_current_account(account):
     global g_current_account
     g_current_account = account
@@ -57,14 +71,62 @@ def set_contract_name(account):
     global g_contract_name
     g_contract_name = account
 
+'''
+set eos public key which used to sign a ETH transaction
+'''
+def set_eos_public_key(pub_key):
+    global g_public_key
+    g_public_key = pub_key
+
+'''
+generate a ETH address from a EOS public key
+'''
+def gen_eth_address_from_eos_public_key(pub_key):
+    pub_key = base58.b58decode(pub_key[3:])
+    eth_address = eth_utils.keccak(pub_key[:-4])[12:]
+    return eth_address.hex()
+
 def get_last_trx_result():
     return g_last_trx_ret
 
-def publish_evm_code(transaction):
+def to_eth_v(v_raw, chain_id=None):
+    if chain_id is None:
+        v = v_raw + V_OFFSET
+    else:
+        v = v_raw + CHAIN_ID_OFFSET + 2 * chain_id
+    return v
+
+'''
+sign a ETH transaction with EOS private key
+'''
+def sign_transaction_dict_with_eos_key(transaction_dict, chain_id, eos_pub_key):
+    # generate RLP-serializable transaction, with defaults filled
+    unsigned_transaction = serializable_unsigned_transaction_from_dict(transaction_dict)
+
+    transaction_hash = unsigned_transaction.hash()
+    print('transaction hash:', transaction_hash)
+    sign = wallet.sign_digest(transaction_hash, eos_pub_key)
+    sign = base58.b58decode(sign[7:])
+    print(sign)
+    v = to_eth_v(0, chain_id + (sign[0]<<24)+0x800000)
+
+    sign = sign[1:-4]    
+#    v = chain_id + (sign[0]<<24)+0x800000
+    print('+++v:', v)
+    r = int.from_bytes(sign[:32], 'big')
+    s = int.from_bytes(sign[32:32+32], 'big')
+
+    # serialize transaction with rlp
+    encoded_transaction = encode_transaction(unsigned_transaction, vrs=(v, r, s))
+    print("++++v, r, s:", v, r, s)
+    return encoded_transaction
+
+def publish_evm_code(transaction, eos_pub_key = None):
     global g_chain_id
     global g_current_account
     global g_last_trx_ret
-    
+    global g_public_key
+
     transaction['nonce'] = 0
     transaction['gasPrice'] = 1
     transaction['gas'] = 20000000
@@ -78,6 +140,9 @@ def publish_evm_code(transaction):
         priv_key = key_maps[sender]
         encoded_transaction = Account.sign_transaction(transaction, priv_key)   
         encoded_transaction = encoded_transaction.rawTransaction.hex()[2:]
+    elif g_public_key:
+        transaction = dissoc(transaction, 'from')
+        encoded_transaction = sign_transaction_dict_with_eos_key(transaction, g_chain_id, g_public_key)
     else:
         transaction = dissoc(transaction, 'from')
         unsigned_transaction = serializable_unsigned_transaction_from_dict(transaction)
@@ -208,7 +273,7 @@ class Eth(object):
         ret = eosapi.get_table_rows(True, self.contract_account, self.contract_account, 'global', '', '', '', 1)
         return ret['rows'][0]['count']
 
-    def get_eth_chain_id(self):
+    def get_chain_id(self):
         ret = eosapi.get_table_rows(True, self.contract_account, self.contract_account, 'global', '', '', '', 1)
         return ret['rows'][0]['chainid']
 
