@@ -8,6 +8,7 @@ import unittest
 import evm
 from evm import Eth, EthAccount
 from evm import w3
+import base58
 
 from eth_utils import keccak
 from solcx import compile_source, compile_files
@@ -361,6 +362,7 @@ class EVMTestCase(BaseTestCase):
         try:
             w3.eth.sendTransaction(transaction)
         except Exception as e:
+            logger.info(e)
             e = json.loads(e.response)
             assert e['error']['details'][0]['message'] == "assertion failure with message: eth address does not exists!"
 
@@ -529,11 +531,12 @@ class EVMTestCase(BaseTestCase):
     def test_sign_with_eos_private_key(self):
         pub_key = 'EOS7ent7keWbVgvptfYaMYeF2cenMBiwYKcwEuc11uCbStsFKsrmV'
         eth_address = evm.gen_eth_address_from_eos_public_key(pub_key)
+        logger.info(eth_address)
         binded_address = eth.get_binded_address('helloworld13')
         if not binded_address:
             evm.set_eos_public_key(pub_key)
             name = 'helloworld13'
-            args = {'account': name, 'address': eth_address.hex()}
+            args = {'account': name, 'address': eth_address}
             eosapi.push_action(main_account, 'bind', args, {name:'active'})
             binded_address = eth.get_binded_address('helloworld13')
         assert eth_address == binded_address
@@ -541,14 +544,13 @@ class EVMTestCase(BaseTestCase):
         eosapi.transfer('helloworld13', 'helloworld11', 10.0, 'deposit')
 
         transaction = {
-            'nonce': 1,
+            'nonce': eth.get_nonce(eth_address),
             'gasPrice': 2,
             'gas': 3,
             'to':  bytes.fromhex(shared.main_eth_address),
             'value': 1000,
             'data': b'123'
         }
-        pub_key = 'EOS7ent7keWbVgvptfYaMYeF2cenMBiwYKcwEuc11uCbStsFKsrmV'
         encoded_trx = evm.sign_transaction_dict_with_eos_key(transaction, 1, pub_key)
 
         balance = eth.get_balance(eth_address)
@@ -560,6 +562,42 @@ class EVMTestCase(BaseTestCase):
         main_balance2 = eth.get_balance(shared.main_eth_address)
         float_equal(balance - 0.1, balance2)
         float_equal(main_balance + 0.1, main_balance2)
+
+
+    @on_test
+    def test_ecrecover_with_eos_key(self):
+        evm.set_current_account(test_account)
+
+        pub_key = 'EOS7ent7keWbVgvptfYaMYeF2cenMBiwYKcwEuc11uCbStsFKsrmV'
+        eth_address = evm.gen_eth_address_from_eos_public_key(pub_key)
+
+        _from = w3.toChecksumAddress(shared.eth_address)
+        _to = w3.toChecksumAddress(shared.contract_address)
+        args = {'from': _from, 'to': _to}
+
+        from eth_keys import keys
+        from eth_utils import keccak, to_bytes
+        h = keccak(b'a message')
+
+        base58_sign = wallet.sign_digest(h, pub_key)
+        sign = base58.b58decode(base58_sign[7:])
+        print(sign)
+        v = sign[0]
+        sign = sign[1:-4]
+    #    v = chain_id + (sign[0]<<24)+0x800000
+        print('+++v:', v)
+        
+        r = sign[:32]
+        s = sign[32:32+32]
+
+        logs = Greeter.functions.ecrecoverTest(h, v, r, s).transact(args)
+        recover_pub_key = eosapi.recover_key(h.hex(), base58_sign)
+        logger.info(recover_pub_key)
+
+        recover_address = evm.gen_eth_address_from_eos_public_key(recover_pub_key)
+        logger.info(recover_address)
+        logger.info(logs[1][12:].hex())
+        assert logs[1][12:].hex() == recover_address
 
     def setUp(self):
         pass
