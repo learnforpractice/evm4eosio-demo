@@ -82,7 +82,7 @@ That will deploy a Smart Contract at [ethereum_vm](contracts/ethereum_vm) that c
 
 For how to build the Smart Contract, please refer to the following link:
 
-[evm4eosio](https://github.com/learnforpractice/evm4eosio)
+[evmone4eosio](https://github.com/learnforpractice/evmone4eosio)
 
 
 For test on the new builded ethereum_vm.wasm, copy evm4eos_contract/ethereum_vm.wasm and evm4eos_contract/ethereum_vm.abi from build directory to contracts/ethereum_vm
