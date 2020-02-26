@@ -525,6 +525,42 @@ class EVMTestCase(BaseTestCase):
         }
         w3.eth.sendTransaction(transaction)
 
+    @on_test
+    def test_sign_with_eos_private_key(self):
+        pub_key = 'EOS7ent7keWbVgvptfYaMYeF2cenMBiwYKcwEuc11uCbStsFKsrmV'
+        eth_address = evm.gen_eth_address_from_eos_public_key(pub_key)
+        binded_address = eth.get_binded_address('helloworld13')
+        if not binded_address:
+            evm.set_eos_public_key(pub_key)
+            name = 'helloworld13'
+            args = {'account': name, 'address': eth_address.hex()}
+            eosapi.push_action(main_account, 'bind', args, {name:'active'})
+            binded_address = eth.get_binded_address('helloworld13')
+        assert eth_address == binded_address
+
+        eosapi.transfer('helloworld13', 'helloworld11', 10.0, 'deposit')
+
+        transaction = {
+            'nonce': 1,
+            'gasPrice': 2,
+            'gas': 3,
+            'to':  bytes.fromhex(shared.main_eth_address),
+            'value': 1000,
+            'data': b'123'
+        }
+        pub_key = 'EOS7ent7keWbVgvptfYaMYeF2cenMBiwYKcwEuc11uCbStsFKsrmV'
+        encoded_trx = evm.sign_transaction_dict_with_eos_key(transaction, 1, pub_key)
+
+        balance = eth.get_balance(eth_address)
+        main_balance = eth.get_balance(shared.main_eth_address)
+
+        eosapi.push_action(main_account, 'raw', {'trx':encoded_trx.hex(), 'sender':''}, {'helloworld13':'active'})
+
+        balance2 = eth.get_balance(eth_address)
+        main_balance2 = eth.get_balance(shared.main_eth_address)
+        float_equal(balance - 0.1, balance2)
+        float_equal(main_balance + 0.1, main_balance2)
+
     def setUp(self):
         pass
 
