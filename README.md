@@ -62,6 +62,11 @@ python3.7 -m pip install py-solc-x
 python3.7 -m pip install --pre web3[tester]==5.5.0
 ```
 
+### Install Base58
+```
+python3.7 -m pip install base58
+```
+
 ## Start a Testnet
 ```
 nodeos  --verbose-http-errors  --http-max-response-time-ms 100 --data-dir dd --config-dir cd --wasm-runtime eos-vm-jit --contracts-console -p eosio -e --plugin eosio::producer_plugin --plugin eosio::chain_api_plugin --plugin eosio::producer_api_plugin
