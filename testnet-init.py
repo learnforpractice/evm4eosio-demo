@@ -72,8 +72,10 @@ def deploy_contract(account_name, contract_name, contracts_path=None):
         if code_hash != r['code_hash']:
             logger.info(f"++++++++++set contract: {contract_name}")
             r = eosapi.set_contract(account_name, code, abi, 0)
+            return True
     except Exception as e:
-        r = eosapi.set_contract(account_name, code, abi, 0)
+        print(e)
+#        r = eosapi.set_contract(account_name, code, abi, 0)
 
 def create_system_accounts():
     systemAccounts = [
@@ -135,7 +137,8 @@ create_system_accounts()
 contracts_path = os.path.dirname(__file__)
 contracts_path = os.path.join(contracts_path, 'contracts')
 
-deploy_contract('eosio', 'eosio.bios', contracts_path)
+if not eosapi.get_raw_code_and_abi('eosio')['wasm']:
+    deploy_contract('eosio', 'eosio.bios', contracts_path)
 
 feature_digests = ['ad9e3d8f650687709fd68f4b90b41f7d825a365b02c23a636cef88ac2ac00c43',#RESTRICT_ACTION_TO_SELF
             'ef43112c6543b88db2283a2e077278c315ae2c84719a8b25f25cc88565fbea99', #REPLACE_DEFERRED
@@ -164,10 +167,11 @@ if not eosapi.get_balance('eosio'):
     r = eosapi.push_action('eosio.token','issue',{"to":"eosio","quantity":f"1000000000.0000 {config.main_token}","memo":""},{'eosio':'active'})
     assert r
 
-deploy_contract('eosio.msig', 'eosio.msig')
-time.sleep(1.0)
-
-deploy_contract('eosio', 'eosio.system')
+try:
+    deploy_contract('eosio.msig', 'eosio.msig')
+    deploy_contract('eosio', 'eosio.system')
+except Exception as e:
+    print(e)
 
 try:
     args = {'version':0, 'core':f'4,{config.main_token}'}
@@ -188,6 +192,14 @@ for account in  ('helloworld11', 'helloworld12', 'helloworld13', 'helloworld14',
     eosapi.transfer('eosio', account, 1000.0)
     util.buyrambytes('eosio', account, 5*1024*1024)
     util.dbw('eosio', account, 1.0, 1000)
+
+if deploy_contract('helloworld11', 'ethereum_vm'):
+    args = {'chainid': 1}
+    try:
+        r = eosapi.push_action('helloworld11', 'setchainid', args, {'helloworld11':'active'})
+        print(r['processed']['elapsed'])
+    except Exception as e:
+        print(e)
 
 balance = eosapi.get_balance('hello')
 logger.info(f'++++balance: {balance}')
