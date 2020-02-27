@@ -141,7 +141,7 @@ def publish_evm_code(transaction, eos_pub_key = None):
     assert nonce >= 1
 
     transaction['nonce'] = nonce
-    transaction['gasPrice'] = 1
+    transaction['gasPrice'] = 0
     transaction['gas'] = 20000000
 
     if sender in keys:
@@ -151,6 +151,8 @@ def publish_evm_code(transaction, eos_pub_key = None):
     elif g_public_key:
         transaction = dissoc(transaction, 'from')
         encoded_transaction = sign_transaction_dict_with_eos_key(transaction, g_chain_id, g_public_key)
+#        logger.info(encoded_transaction)
+        encoded_transaction = encoded_transaction.hex()
     else:
         transaction = dissoc(transaction, 'from')
         unsigned_transaction = serializable_unsigned_transaction_from_dict(transaction)
