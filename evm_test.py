@@ -540,6 +540,7 @@ class EVMTestCase(BaseTestCase):
             eosapi.push_action(main_account, 'bind', args, {name:'active'})
             binded_address = eth.get_binded_address('helloworld13')
         assert eth_address == binded_address
+        evm.set_eos_public_key(None)
 
         eosapi.transfer('helloworld13', 'helloworld11', 10.0, 'deposit')
 
@@ -678,6 +679,8 @@ Callee = load_contract('sol/callee.sol', 'Callee')
 Empty = load_contract('sol/empty.sol', 'Empty')
 
 shared = ShareValues()
+
+#evm.set_eos_public_key('EOS7ent7keWbVgvptfYaMYeF2cenMBiwYKcwEuc11uCbStsFKsrmV')
 
 if __name__ == '__main__':
     # runner = unittest.TextTestRunner(failfast=True)
