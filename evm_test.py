@@ -101,7 +101,7 @@ def init_testcase():
         vm_abi = open('./contracts/ethereum_vm/ethereum_vm.abi', 'rb').read()
         vm_code = open('./contracts/ethereum_vm/ethereum_vm.wasm', 'rb').read()
         r = eosapi.publish_contract('helloworld11', vm_code, vm_abi, vmtype=0, vmversion=0, sign=True, compress=1)
-        print(r['processed']['elapsed'])
+        logger.info(r['processed']['elapsed'])
     except Exception as e:
         print(e)
 
@@ -685,6 +685,12 @@ shared = ShareValues()
 if __name__ == '__main__':
     # runner = unittest.TextTestRunner(failfast=True)
     # runner.run(suite())
+    if len(sys.argv) > 1:
+        url = sys.argv[-1]
+        url = url.strip()
+        if url.startswith('http'):
+            eosapi.set_node(url)
+            sys.argv.pop()
     init_testcase()
     unittest.main()
 
