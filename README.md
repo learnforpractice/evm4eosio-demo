@@ -5,6 +5,7 @@
 ### Ubuntu 18.04:
 
 ```
+sudo apt install software-properties-common
 sudo add-apt-repository ppa:ethereum/ethereum
 sudo apt-get update
 sudo apt-get install solc
