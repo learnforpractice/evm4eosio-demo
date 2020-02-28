@@ -2,7 +2,7 @@ import os
 import json
 import web3
 from web3 import Web3
-from solc import link_code
+from solcx import link_code
 import rlp
 import base58
 
