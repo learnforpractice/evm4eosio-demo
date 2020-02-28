@@ -76,8 +76,11 @@ nodeos  --verbose-http-errors  --http-max-response-time-ms 100 --data-dir dd --c
 ## Initialize the Testnet
 At the same directory, run the following command:
 ```
-python3.7 testnet-init.py
+python3.7 testnet-init.py http://127.0.0.1:8888
 ```
+
+modify http://127.0.0.1:8888 to the right url if nodeos is not listening at the default ip and port
+
 
 That will deploy a Smart Contract at [ethereum_vm](contracts/ethereum_vm) that can run Ethereum Smart Contract to the testnet.
 
@@ -99,5 +102,7 @@ Open hello_evm.ipynb and run code in cell one by one
 ## Run TestCase
 
 ```
-python3.7 evm_test.py
+python3.7 evm_test.py http://127.0.0.1:8888
 ```
+
+modify http://127.0.0.1:8888 to the right url if nodeos is not listening at the default ip and port
