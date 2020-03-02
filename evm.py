@@ -53,6 +53,18 @@ def format_log(aa):
         elif isinstance(aa[i], list):
             format_log(aa[i])
 
+def hex2int(h):
+    if h[:2] == '0x':
+        h = h[2:]
+    h = bytes.fromhex(h)
+    return int.from_bytes(h, 'big')
+
+def hex2bytes(h):
+    if h[:2] == '0x':
+        h = h[2:]
+    return bytes.fromhex(h)
+
+
 '''
 set ETH chain id
 '''
@@ -135,10 +147,11 @@ def publish_evm_code(transaction, eos_pub_key = None):
     if sender[:2] == '0x':
         sender = sender[2:]
     sender = sender.lower()
-
+    logger.info(sender)
     a = EthAccount('helloworld11', sender)
+    logger.info(('+++++++++sender:', sender))
     nonce = a.get_nonce()
-    assert nonce >= 1
+    assert nonce >= 0
 
     transaction['nonce'] = nonce
     transaction['gasPrice'] = 0
@@ -173,7 +186,7 @@ def publish_evm_code(transaction, eos_pub_key = None):
     ret = eosapi.push_action(contract_name, 'raw', args, {account_name:'active'})
     g_last_trx_ret = ret
     logs = ret['processed']['action_traces'][0]['console']
-    logger.debug(logs)
+    logger.info(logs)
     logger.info(('++++elapsed:', ret['processed']['elapsed']))
     try:
         logs = bytes.fromhex(logs)
@@ -301,8 +314,8 @@ class Eth(object):
             return ret['rows'][0]['count']
         return 0
 
-    def get_all_address_info(self):
-        ret = eosapi.get_table_rows(True, self.contract_account, self.contract_account, 'ethaccount', '', '', '', 10000)
+    def get_all_address_info(self, json=True):
+        ret = eosapi.get_table_rows(json, self.contract_account, self.contract_account, 'ethaccount', '', '', '', 10000)
         return ret['rows']
 
 #table ethaccount
@@ -380,9 +393,9 @@ class Eth(object):
         # print(row)
         if row:
             balance = row['balance']
-            balance = balance.split(' ')[0]
-            return float(balance)
-        return 0.0
+            balance = bytes.fromhex(balance)
+            return int.from_bytes(balance, 'little')
+        return 0
 
     def get_nonce(self, address):
         address = normalize_address(address)
