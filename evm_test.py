@@ -293,7 +293,7 @@ class EVMTestCase(BaseTestCase):
         args = {'from': shared.eth_address,'to': checksum_contract_address}
 
         logs = Greeter.functions.setValue(0xaabbccddee).transact(args)
-        assert logs[2][0][2][0] == keccak(b'onSetValue(uint256)')
+        assert logs[2][0][1][0] == keccak(b'onSetValue(uint256)')
         evm.format_log(logs)
         logger.info(logs)
 
