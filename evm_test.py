@@ -27,9 +27,6 @@ class bcolors:
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(lineno)d %(module)s %(message)s')
 logger=logging.getLogger(__name__)
 
-def float_equal(f1, f2):
-    return abs(f1 - f2) <= 1e-9
-
 def compile_contract(contract_source_code, main_class):
     compiled_sol = compile_source(contract_source_code) # Compiled source code
     contract_interface = compiled_sol[main_class]
@@ -146,8 +143,8 @@ def init_testcase():
         try:
             r = eosapi.push_action(main_account, 'create', args, {test_account:'active'})
             shared.eth_address = r['processed']['action_traces'][0]['console']
-            print('eth address:', shared.eth_address)
-            print(r['processed']['elapsed'])
+            logger.info('eth address:', shared.eth_address)
+            logger.info(r['processed']['elapsed'])
         except Exception as e:
             if hasattr(e, 'response'):
                 parsed = json.loads(e.response)
@@ -163,7 +160,7 @@ def init_testcase():
     #verify eth address
     e = rlp.encode([test_account, 'hello,world'])
     h = keccak(e)
-    print(h[12:].hex(), shared.eth_address)
+    logger.info((h[12:].hex(), shared.eth_address))
     assert h[12:].hex() == shared.eth_address
     shared.contract_address = None
 
@@ -248,7 +245,7 @@ class EVMTestCase(BaseTestCase):
 
         eth_balance = eth.get_balance(shared.eth_address)
         logger.info(('++++balance:', balance, eth_balance))
-        assert float_equal(eth_balance, balance + 10.1)
+        assert eth_balance == balance + 10*10000+1000
 
     @on_test
     def test_withdraw(self):
@@ -343,8 +340,8 @@ class EVMTestCase(BaseTestCase):
 
         logger.info((balance1, eth.get_balance(shared.eth_address)))
 
-        assert float_equal(balance1, eth.get_balance(shared.eth_address)+0.1)
-        assert float_equal(balance2+0.1, eth.get_balance(shared.main_eth_address))
+        assert balance1 == eth.get_balance(shared.eth_address)+1000
+        assert balance2+1000 == eth.get_balance(shared.main_eth_address)
 
     @on_test
     def test_transfer_eth_to_not_created_address(self):
@@ -385,9 +382,6 @@ class EVMTestCase(BaseTestCase):
         args = {'from': shared.eth_address,'to': checksum_contract_address}
         logs = Greeter.functions.transferBack(1000).transact(args)
 
-        float_equal(balance1+0.1, eth.get_balance(shared.eth_address))
-        float_equal(balance2-0.1, eth.get_balance(shared.contract_address))
-
         balance1 = eth.get_balance(shared.eth_address)
         balance2 = eth.get_balance(shared.contract_address)
         logger.info((balance1, balance2))
@@ -403,7 +397,10 @@ class EVMTestCase(BaseTestCase):
 
         args = {'from': shared.eth_address,'to': checksum_contract_address}
         balance = eth.get_balance(shared.eth_address)
-        balance = int(balance*10000)
+        balance_contract = eth.get_balance(shared.contract_address)
+
+        logger.info((balance, balance_contract))
+
         logs = Greeter.functions.checkBalance(balance).transact(args)
 
         evm.format_log(logs)
@@ -508,7 +505,7 @@ class EVMTestCase(BaseTestCase):
             w3.eth.sendTransaction(transaction)
         except Exception as e:
             e = json.loads(e.response)
-            assert e['error']['details'][0]['message'] == "assertion failure with message: bad chain id"
+            assert e['error']['details'][0]['message'] == "assertion failure with message: bad chain id!"
 
         time.sleep(0.5)
         args = {'chainid': 1}
@@ -561,8 +558,6 @@ class EVMTestCase(BaseTestCase):
 
         balance2 = eth.get_balance(eth_address)
         main_balance2 = eth.get_balance(shared.main_eth_address)
-        float_equal(balance - 0.1, balance2)
-        float_equal(main_balance + 0.1, main_balance2)
 
 
     @on_test
