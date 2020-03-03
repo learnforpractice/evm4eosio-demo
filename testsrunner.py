@@ -52,36 +52,58 @@ def convert_storage(s):
     return out
 
 g_counter = 0
+g_failed_gas_checking_tests = []
+
+class GasCheckingException(Exception):
+    pass
+
 def run_test(test):
     global g_counter
+    global g_failed_gas_check
 
     g_counter += 1
     r = eosapi.push_action('helloworld11', 'clearenv', int.to_bytes(g_counter, 4, 'little'), {'helloworld11': 'active'})
 
+    trx = test['exec']
+    caller = trx['caller'][2:]
+    to = trx['address'][2:]
+    caller_created = False
+
     for addr in test['pre']:
         # logger.info(addr)
+        if caller == addr[2:]:
+            caller_created = True
         info = test['pre'][addr]
         balance = evm.hex2int(info['balance'])
         balance = int.to_bytes(balance, 32, 'little')
         balance = balance.hex()
         code = info['code'][2:]
         nonce = evm.hex2int(info['nonce'])
-        args = dict(address=addr[2:], nonce=nonce, balance=balance, code=code, counter=g_counter)
+
+        storage = []
+        for key in info['storage']:
+            value = info['storage'][key]
+            value = hex2int(value)
+            key = hex2int(key)
+            key = int.to_bytes(key, 32, 'big').hex()
+            value = int.to_bytes(value, 32, 'big').hex()
+            storage.append(key)
+            storage.append(value)
+
+        args = dict(address=addr[2:], nonce=nonce, balance=balance, code=code, storage=storage, counter=g_counter)
         # logger.info(args)
-        r = eosapi.push_action('helloworld11', 'setaddrinfo', args, {'helloworld11': 'active'})
+        ret = eosapi.push_action('helloworld11', 'setaddrinfo', args, {'helloworld11': 'active'})
+        output = ret['processed']['action_traces'][0]['console']
+        # logger.info(('++++output:', output))
         # logger.info(eth.get_all_address_info())
 #            {'balance': '0x152d02c7e14af6800000', 'code': '0x6000600020600055', 'nonce': '0x00', 'storage': {}
-    env = test['env']
-    trx = test['exec']
-    to = trx['address'][2:]
-    caller = trx['caller'][2:]
-
-    try:
-        #1000000000000000000
-        args = dict(address=caller, nonce=1, balance='00', code='', counter=g_counter)
-        r = eosapi.push_action('helloworld11', 'setaddrinfo', args, {'helloworld11': 'active'})
-    except Exception as e:
-        print(e)
+    if not caller_created:
+        try:
+            #1000000000000000000
+            args = dict(address=caller, nonce=1, balance='00', code='', storage=[], counter=g_counter)
+            r = eosapi.push_action('helloworld11', 'setaddrinfo', args, {'helloworld11': 'active'})
+        except Exception as e:
+            logger.info(e)
 
     # "currentCoinbase" : "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
     # "currentDifficulty" : "0x0100",
@@ -89,7 +111,7 @@ def run_test(test):
     # "currentNumber" : "0x01",
     # "currentTimestamp" : "0x01"
 
-
+    env = test['env']
     value = hex2int(trx['value'])
     value = int.to_bytes(value, 32, 'little')
     value = value.hex()
@@ -115,18 +137,20 @@ def run_test(test):
 #        logger.info(args)
     ret = eosapi.push_action('helloworld11', 'raw', args, {'helloworld11': 'active'})
     output = ret['processed']['action_traces'][0]['console']
-    # logger.info(output)
+    # logger.info(("++++++++console:", output))
+    # start = output.rfind(':')
+    # output = output[start+1:]
     # logger.info(('++++elapsed:', ret['processed']['elapsed']))
     try:
         output = bytes.fromhex(output)
         output = rlp.decode(output)
-        logger.info(output)
+        # logger.info(output)
     except Exception as e:
         logger.error(output)
         raise e
 
     if 'out' in test:
-        assert output[1].hex() == test['out'][2:]
+        assert output[1].hex() == test['out'][2:], (output[1].hex(), test['out'][2:])
 
     if 'logs' in test:
         if len(output) == 2:
@@ -137,6 +161,15 @@ def run_test(test):
         logs = rlp.encode(logs)
         logs = keccak(logs)
         assert logs.hex() == test['logs'][2:], (logs, test['logs'])
+
+    #too many failture on gas checking, 
+    if 'gas' in test:
+        expected_gas = hex2int(test['gas'])
+        gas = output[3]
+        gas = int.from_bytes(gas, 'big')
+        if gas != expected_gas:
+            raise GasCheckingException(dict(gas=gas, expected_gas=expected_gas))
+#            assert gas == expected_gas, (gas, expected_gas)
 
     if not 'post' in test:
         return
@@ -167,57 +200,25 @@ def run_test_in_file(json_file):
     tests = json.loads(tests)
 
     for name in tests:
-        print(name)
+        # logger.info(name)
         run_test(tests[name])
 
 def init_testcase():
     try:
-        vm_abi = open('./contracts/ethereum_vm/ethereum_vm.abi', 'rb').read()
-        vm_code = open('./contracts/ethereum_vm/ethereum_vm.wasm', 'rb').read()
+        abi_file = './contracts/ethereum_vm/evmtest.abi'
+        wasm_file = './contracts/ethereum_vm/evmtest.wasm'
+
+        vm_abi = open(abi_file, 'rb').read()
+        from pyeoskit import _hello
+        abi = _hello._eosapi.pack_abi(vm_abi)
+        setabi = eosapi.pack_args('eosio', 'setabi', {'account':'helloworld11', 'abi':abi.hex()})
+        eosapi.push_action('eosio', 'setabi', setabi, {'helloworld11':'active'})
+
+        vm_code = open(wasm_file, 'rb').read()
         r = eosapi.publish_contract('helloworld11', vm_code, vm_abi, vmtype=0, vmversion=0, sign=True, compress=1)
         logger.info(r['processed']['elapsed'])
     except Exception as e:
-        print(e)
-#    root = '/Users/newworld/dev/ethereum/tests/VMTests/vmSha3Test'
-    root = '/Users/newworld/dev/ethereum/tests/VMTests'
-    failed_tests = []
-    test_files = os.listdir(root)
-    root = '/Users/newworld/dev/ethereum/tests/VMTests'
-    total_tests = 0
-    failed_tests = []
-    for root, dirs, files in os.walk(root):
-        for file in files:
-            if not file.endswith('.json'):
-                continue
-            total_tests += 1
-            full_file_path = os.path.join(root,  file)
-            logger.info(('run test', full_file_path))
-            try:
-                run_test_in_file(full_file_path)
-            except urllib3.exceptions.NewConnectionError as e:
-                logger.exception(e)
-                sys.exit(-1)
-            except urllib3.exceptions.MaxRetryError as e:
-                logger.exception(e)
-                sys.exit(-1)
-            except Exception as e:
-                if hasattr(e, 'response'):
-                    e = json.loads(e.response)
-                    error_message = e['error']['details'][0]['message']
-                    logger.info(error_message)
-                    # if file == 'mulUnderFlow.json' and error_message == "assertion failure with message: evmc stack underflow":
-                    #     pass
-                    # else:
-                    #     # logger.exception(e)
-                else:
-                    logger.exception(e)
-                failed_tests.append(full_file_path)
-
-    logger.info(('+++failture tests:', failed_tests))
-    logger.info(('++++total tests:', total_tests, 'failed tests:', len(failed_tests)))
-    # json_file = os.path.join(root, 'expPowerOf256Of256_14.json')
-    # run_test(json_file)
-
+        logger.info(e)
 
 class EVMTestCase(unittest.TestCase):
     def __init__(self, testName, extra_args=[]):
@@ -232,8 +233,47 @@ class EVMTestCase(unittest.TestCase):
         super().setUpClass()
 
     @on_test
-    def test_ecrecover_with_eos_key(self):
-        pass
+    def test_vm_tests(self):
+    #        logger.exception(e)
+        total_tests = 0
+        failed_tests = []
+        failed_gas_checking_tests = []
+        for root, dirs, files in os.walk(vmtests_dir):
+            for file in files:
+                if not file.endswith('.json'):
+                    continue
+                total_tests += 1
+                full_file_path = os.path.join(root,  file)
+                logger.info(('run test', full_file_path))
+                try:
+                    run_test_in_file(full_file_path)
+                except urllib3.exceptions.NewConnectionError as e:
+                    logger.exception(e)
+                    sys.exit(-1)
+                except urllib3.exceptions.MaxRetryError as e:
+                    logger.exception(e)
+                    sys.exit(-1)
+                except GasCheckingException as e:
+                    failed_gas_checking_tests.append(full_file_path)
+                except Exception as e:
+                    if hasattr(e, 'response'):
+                        e = json.loads(e.response)
+                        error_message = e['error']['details'][0]['message']
+                        logger.info(error_message)
+                        # if file == 'mulUnderFlow.json' and error_message == "assertion failure with message: evmc stack underflow":
+                        #     pass
+                        # else:
+                        #     # logger.exception(e)
+                    else:
+                        logger.exception(e)
+                    failed_tests.append(full_file_path)
+
+        logger.info(('+++failture tests:', failed_tests))
+        logger.info(('++++total tests:', total_tests, 'failed tests:', len(failed_tests)))
+        logger.info(("++++failed_gas_checking_tests:", failed_gas_checking_tests))
+        # json_file = os.path.join(root, 'expPowerOf256Of256_14.json')
+        # run_test(json_file)
+
 
     def setUp(self):
         pass
@@ -245,9 +285,25 @@ main_account = 'helloworld11'
 test_account = 'helloworld12'
 eth = Eth(main_account)
 
-#evm.set_eos_public_key('EOS7ent7keWbVgvptfYaMYeF2cenMBiwYKcwEuc11uCbStsFKsrmV')
+vmtests_dir = 'VMTests'
 
 if __name__ == '__main__':
+    i = len(sys.argv)
+    for arg in sys.argv[::-1]:
+        if arg == '--':
+            break
+        i -= 1
+    if i > 0:
+        extra_args = sys.argv[i:]
+        if len(extra_args) >= 1:
+            url = extra_args[0]
+            eosapi.set_node(url)
+        if len(extra_args) >= 2:
+            vmtests_dir = extra_args[1]
+            if not os.path.exists(vmtests_dir):
+                raise Exception('vmtests dir '+'does not exist')
+        sys.argv = sys.argv[:i-1]
+
     init_testcase()
     unittest.main()
 

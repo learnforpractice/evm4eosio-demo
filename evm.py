@@ -426,7 +426,7 @@ class Eth(object):
         address = normalize_address(address)
         creator = self.get_creator(address)
         index = self.get_index(address)
-        print('+++++index:', creator, index)
+        # print('+++++index:', creator, index)
         index = eosapi.n2s(index)
         ret = eosapi.get_table_rows(True, self.contract_account, index, 'accountstate', '', '', '', 100)
         return ret['rows']
