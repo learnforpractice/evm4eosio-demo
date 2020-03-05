@@ -3,4 +3,4 @@ __pycache__
 test.wallet
 .tmp
 mywallet.wallet
-
+tests

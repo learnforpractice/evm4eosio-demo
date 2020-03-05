@@ -10,6 +10,7 @@ from evm import Eth, EthAccount
 from evm import w3, hex2int, hex2bytes
 import base58
 import urllib3
+import argparse
 
 from eth_utils import keccak
 from solcx import compile_source, compile_files
@@ -26,6 +27,7 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(lineno)d %(module)s %(message)s')
+#logging.basicConfig(level=logging.INFO, format='%(levelname)s %(lineno)d %(module)s %(message)s')
 logger=logging.getLogger(__name__)
 
 def on_test(func):
@@ -129,7 +131,8 @@ def run_test(test):
         hex2int(env['currentDifficulty']),
         hex2int(env['currentGasLimit']),
         hex2int(env['currentNumber']),
-        hex2int(env['currentTimestamp'])
+        hex2int(env['currentTimestamp']),
+        config.evm_version
     ]
     data = rlp.encode(args)
     sender = int.to_bytes(g_counter, 4, 'little').hex()+"fffffefdfcfbfaf9f7f6f5f4f3f2f1f0"
@@ -162,7 +165,28 @@ def run_test(test):
         logs = keccak(logs)
         assert logs.hex() == test['logs'][2:], (logs, test['logs'])
 
-    #too many failture on gas checking, 
+    if 'post' in test:
+        for addr in test['post']:
+            post_info = test['post'][addr]
+            post_balance = evm.hex2int(post_info['balance'])
+            code = post_info['code'][2:]
+            nonce = evm.hex2int(post_info['nonce'])
+            post_storage = post_info['storage']
+            post_storage = convert_post_storage(post_storage)
+
+            balance = eth.get_balance(addr)
+            assert balance == post_balance, (post_balance, balance)
+            assert code == eth.get_code(addr), (code, eth.get_code(addr))
+
+            storage = eth.get_all_values(addr)
+
+            storage = convert_storage(storage)
+            # logger.info(storage)
+            for key in post_storage:
+                assert key in storage, (key, storage)
+                assert storage[key] == post_storage[key], (storage[key], post_storage[key])
+
+    #too many failture on gas checking on BYZANTIUM fork, VMTests gas depend on FRONTIER
     if 'gas' in test:
         expected_gas = hex2int(test['gas'])
         gas = output[3]
@@ -171,28 +195,6 @@ def run_test(test):
             raise GasCheckingException(dict(gas=gas, expected_gas=expected_gas))
 #            assert gas == expected_gas, (gas, expected_gas)
 
-    if not 'post' in test:
-        return
-
-    for addr in test['post']:
-        post_info = test['post'][addr]
-        post_balance = evm.hex2int(post_info['balance'])
-        code = post_info['code'][2:]
-        nonce = evm.hex2int(post_info['nonce'])
-        post_storage = post_info['storage']
-        post_storage = convert_post_storage(post_storage)
-
-        balance = eth.get_balance(addr)
-        assert balance == post_balance, (post_balance, balance)
-        assert code == eth.get_code(addr), (code, eth.get_code(addr))
-
-        storage = eth.get_all_values(addr)
-
-        storage = convert_storage(storage)
-        # logger.info(storage)
-        for key in post_storage:
-            assert key in storage, (key, storage)
-            assert storage[key] == post_storage[key], (storage[key], post_storage[key])
 
 def run_test_in_file(json_file):
     with open(json_file, 'r') as f:
@@ -234,7 +236,6 @@ class EVMTestCase(unittest.TestCase):
 
     @on_test
     def test_vm_tests(self):
-    #        logger.exception(e)
         total_tests = 0
         failed_tests = []
         failed_gas_checking_tests = []
@@ -244,7 +245,6 @@ class EVMTestCase(unittest.TestCase):
                     continue
                 total_tests += 1
                 full_file_path = os.path.join(root,  file)
-                logger.info(('run test', full_file_path))
                 try:
                     run_test_in_file(full_file_path)
                 except urllib3.exceptions.NewConnectionError as e:
@@ -256,6 +256,7 @@ class EVMTestCase(unittest.TestCase):
                 except GasCheckingException as e:
                     failed_gas_checking_tests.append(full_file_path)
                 except Exception as e:
+                    logger.info(('run test', full_file_path))
                     if hasattr(e, 'response'):
                         e = json.loads(e.response)
                         error_message = e['error']['details'][0]['message']
@@ -268,9 +269,11 @@ class EVMTestCase(unittest.TestCase):
                         logger.exception(e)
                     failed_tests.append(full_file_path)
 
-        logger.info(('+++failture tests:', failed_tests))
+        # logger.info(('+++failture tests:', failed_tests))
         logger.info(('++++total tests:', total_tests, 'failed tests:', len(failed_tests)))
-        logger.info(("++++failed_gas_checking_tests:", failed_gas_checking_tests))
+        logger.info(failed_gas_checking_tests)
+        logger.info(("++++failed_gas_checking_tests:", len(failed_gas_checking_tests)))
+
         # json_file = os.path.join(root, 'expPowerOf256Of256_14.json')
         # run_test(json_file)
 
@@ -286,23 +289,28 @@ test_account = 'helloworld12'
 eth = Eth(main_account)
 
 vmtests_dir = 'VMTests'
-
+config = None
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='')
+    parser.add_argument('-d', '--test-dir',               type=str, default='tests/VMTests',          help='VMTests directory')
+    parser.add_argument('-a', '--http-server-address',    type=str, default='http://127.0.0.1:8888',  help='http server address')
+    parser.add_argument('-v', '--evm-version',    type=int, default=0,  help='which evm version to test, 0 for FRONTIER, 1 for BYZANTIUM, default to 0')
+
     i = len(sys.argv)
     for arg in sys.argv[::-1]:
         if arg == '--':
             break
         i -= 1
+    extra_args = []
     if i > 0:
         extra_args = sys.argv[i:]
-        if len(extra_args) >= 1:
-            url = extra_args[0]
-            eosapi.set_node(url)
-        if len(extra_args) >= 2:
-            vmtests_dir = extra_args[1]
-            if not os.path.exists(vmtests_dir):
-                raise Exception('vmtests dir '+'does not exist')
         sys.argv = sys.argv[:i-1]
+
+    config = parser.parse_args(extra_args)
+    eosapi.set_node(config.http_server_address)
+    vmtests_dir = config.test_dir
+    if not os.path.exists(vmtests_dir):
+        raise Exception('vmtests dir '+'does not exist')
 
     init_testcase()
     unittest.main()
