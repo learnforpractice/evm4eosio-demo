@@ -106,3 +106,20 @@ python3.7 evm_test.py http://127.0.0.1:8888
 ```
 
 modify http://127.0.0.1:8888 to the right url if nodeos's http server is not listening at the default ip and port
+
+## Run VMTests
+
+First clone [ethereum tests](https://github.com/ethereum/tests) to your local director:
+
+```
+git clone https://github.com/ethereum/tests
+```
+
+Run vm tests with the following command
+
+```
+python3 testsrunner.py -- --http-server-address http://127.0.0.1:8888 -d tests/VMTests -v 0
+```
+
+change tests/VMTests to the properly vm tests directory.
+
