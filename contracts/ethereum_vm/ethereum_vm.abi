@@ -3,14 +3,34 @@
    "types": [],
   "structs": [
     {
+      "name": "testexec",
+      "base": "",
+      "fields": [
+        {"name":"data",       "type":"bytes"},
+        {"name":"counter",   "type":"uint64"}
+       ]
+    },
+    {
+      "name": "testinfo",
+      "base": "",
+      "fields": [
+        {"name":"address", "type":"checksum160"},
+        {"name":"nonce",   "type":"uint64"},
+        {"name":"balance", "type":"checksum256"},
+        {"name":"code",    "type":"bytes"},
+        {"name":"storage", "type":"checksum256[]"},
+        {"name":"counter", "type":"uint64"},
+       ]
+    },
+    {
       "name": "ethaccount",
       "base": "",
       "fields": [
         {"name":"index", "type":"uint64"},
         {"name":"creator", "type":"name"},
-        {"name":"nonce", "type":"int64"},
-        {"name":"address", "type":"bytes"},
-        {"name":"balance", "type":"asset"},
+        {"name":"nonce", "type":"uint64"},
+        {"name":"address", "type":"checksum160"},
+        {"name":"balance", "type":"checksum256"},
        ]
     },{
       "name": "accountstate",
@@ -25,7 +45,7 @@
       "base": "",
       "fields": [
         {"name":"index",   "type":"uint64"},
-        {"name":"address", "type":"bytes"},
+        {"name":"address", "type":"checksum160"},
         {"name":"code",    "type":"bytes"}
        ]
     },{
@@ -46,7 +66,7 @@
       "base": "",
       "fields": [
         {"name":"creator",   "type":"name"},
-        {"name":"address",   "type":"bytes"}
+        {"name":"address",   "type":"checksum160"}
        ]
     },{
       "name": "create",
@@ -60,7 +80,7 @@
       "base": "",
       "fields": [
         {"name":"account", "type":"name"},
-        {"name":"address", "type":"bytes"}
+        {"name":"address", "type":"checksum160"}
        ]
     },{
       "name": "ethraw",
@@ -74,13 +94,13 @@
       "base": "",
       "fields": [
         {"name":"nonce", "type":"uint64"},
-        {"name":"balance", "type":"asset"},
+        {"name":"balance", "type":"checksum256"},
        ]
     },{
       "name": "getaddrinfo",
       "base": "",
       "fields": [
-        {"name":"address", "type":"bytes"}
+        {"name":"address", "type":"checksum160"}
        ]
     },{
       "name": "withdraw",
@@ -98,6 +118,16 @@
     }
   ],
   "actions": [
+    {
+      "name": "testexec",
+      "type": "testexec",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "setaddrinfo",
+      "type": "testinfo",
+      "ricardian_contract": ""
+    },
     {
       "name": "create",
       "type": "create",
