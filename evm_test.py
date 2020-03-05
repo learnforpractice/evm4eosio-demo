@@ -28,7 +28,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(line
 logger=logging.getLogger(__name__)
 
 def compile_contract(contract_source_code, main_class):
-    compiled_sol = compile_source(contract_source_code) # Compiled source code
+    compiled_sol = compile_source(contract_source_code, evm_version='byzantium') # Compiled source code
     contract_interface = compiled_sol[main_class]
     return contract_interface
 
@@ -143,7 +143,7 @@ def init_testcase():
         try:
             r = eosapi.push_action(main_account, 'create', args, {test_account:'active'})
             shared.eth_address = r['processed']['action_traces'][0]['console']
-            logger.info('eth address:', shared.eth_address)
+            logger.info(('eth address:', shared.eth_address))
             logger.info(r['processed']['elapsed'])
         except Exception as e:
             if hasattr(e, 'response'):
