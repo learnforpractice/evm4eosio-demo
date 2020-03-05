@@ -118,7 +118,7 @@ git clone https://github.com/ethereum/tests
 Run vm tests with the following command
 
 ```
-python3 testsrunner.py -- --http-server-address http://127.0.0.1:8888 -d tests/VMTests -v 0
+python3.7 testsrunner.py -- --http-server-address http://127.0.0.1:8888 -d tests/VMTests -v 0
 ```
 
 change tests/VMTests to the properly vm tests directory.
