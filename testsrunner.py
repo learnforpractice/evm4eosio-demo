@@ -269,6 +269,8 @@ class EVMTestCase(unittest.TestCase):
                         logger.exception(e)
                     failed_tests.append(full_file_path)
 
+        r = eosapi.push_action('helloworld11', 'clearenv', b'clearenv', {'helloworld11': 'active'})
+
         # logger.info(('+++failture tests:', failed_tests))
         logger.info(('++++total tests:', total_tests, 'failed tests:', len(failed_tests)))
         logger.info(failed_gas_checking_tests)
