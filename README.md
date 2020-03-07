@@ -109,7 +109,7 @@ modify http://127.0.0.1:8888 to the right url if nodeos's http server is not lis
 
 ## Run VMTests
 
-First clone [ethereum tests](https://github.com/ethereum/tests) to your local director:
+First clone [ethereum tests](https://github.com/ethereum/tests) to your local directory:
 
 ```
 git clone https://github.com/ethereum/tests
