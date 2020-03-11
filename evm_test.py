@@ -365,9 +365,12 @@ class EVMTestCase(BaseTestCase):
     @on_test
     def test_transfer_eth(self):
         evm.set_current_account('helloworld12')
-        eosapi.transfer('helloworld12', 'helloworld11', 1.0)
+        eosapi.transfer('helloworld12', main_account, 1.0)
         balance1 = eth.get_balance(shared.eth_address)
         balance2 = eth.get_balance(shared.main_eth_address)
+
+        ram_usage_main_account = eosapi.get_account(main_account)['ram_usage']
+        ram_usage_test_account = eosapi.get_account(test_account)['ram_usage']
 
         transaction = {
                 'from':shared.eth_address,
@@ -384,6 +387,9 @@ class EVMTestCase(BaseTestCase):
 
         assert balance1 == eth.get_balance(shared.eth_address)+1000
         assert balance2+1000 == eth.get_balance(shared.main_eth_address)
+
+        assert ram_usage_main_account == eosapi.get_account(main_account)['ram_usage']
+        assert ram_usage_test_account == eosapi.get_account(test_account)['ram_usage']
 
     @on_test
     def test_transfer_eth_to_not_created_address(self):
