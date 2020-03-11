@@ -173,8 +173,8 @@ class EVMTestCase(unittest.TestCase):
     @on_test
     def test_vm_tests(self):
         test_file = '/Users/newworld/dev/ethereum/tests/GeneralStateTests/stArgsZeroOneBalance/addNonConst.json'
-        test_file = '/Users/newworld/dev/ethereum/tests/GeneralStateTests/stBugs/evmBytecode.json'
-        test_file = '/Users/newworld/dev/ethereum/tests/GeneralStateTests/stBugs/randomStatetestDEFAULT-Tue_07_58_41-15153-575192.json'
+        # test_file = '/Users/newworld/dev/ethereum/tests/GeneralStateTests/stBugs/evmBytecode.json'
+        # test_file = '/Users/newworld/dev/ethereum/tests/GeneralStateTests/stBugs/randomStatetestDEFAULT-Tue_07_58_41-15153-575192.json'
         run_test_in_file(test_file)
         return
 

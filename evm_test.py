@@ -11,8 +11,10 @@ from evm import w3
 import base58
 
 from eth_utils import keccak
-from solcx import compile_source, compile_files
+from solcx import compile_source, compile_files, set_solc_version
 from init import *
+
+#set_solc_version('v0.5.8')
 
 class bcolors:
     HEADER = '\033[95m'
@@ -36,6 +38,7 @@ def load_contract(file_name, main_class):
     src = open(file_name, 'r').read()
     contract_interface = compile_contract(src, f'<stdin>:{main_class}')
     bytecode = contract_interface['bin']
+    print(main_class, bytecode)
     abi = contract_interface['abi']
     return w3.eth.contract(abi=abi, bytecode=bytecode)
 
@@ -220,6 +223,22 @@ class EVMTestCaseCreate(unittest.TestCase):
         logs = Empty.constructor().transact({'from': shared.eth_address})
         logger.info(logs[0].hex())
 
+    @on_test
+    def test_deploy_evm_contract_with_value(self):
+        nonce = eth.get_nonce(shared.eth_address)
+        e = rlp.encode([bytes.fromhex(shared.eth_address), nonce])
+        h = keccak(e)
+        new_address = h[12:].hex()
+
+        # Deposit Test
+        logger.info(('++++++++++shared.eth_address:', shared.eth_address))
+        logs = PayableConstructor.constructor().transact({'from': shared.eth_address, 'value':10})
+
+        assert logs[0].hex() == new_address
+        assert eth.get_balance(new_address) == 10
+
+
+
 class EVMTestCase(BaseTestCase):
     def __init__(self, testName, extra_args=[]):
         super(EVMTestCase, self).__init__(testName)
@@ -293,9 +312,32 @@ class EVMTestCase(BaseTestCase):
         args = {'from': shared.eth_address,'to': checksum_contract_address}
 
         logs = Greeter.functions.setValue(0xaabbccddee).transact(args)
+        logger.info((logs, keccak(b'onSetValue(uint256)')))
+        logger.info(logs[2][0])
         assert logs[2][0][1][0] == keccak(b'onSetValue(uint256)')
         evm.format_log(logs)
         logger.info(logs)
+
+    @on_test
+    def test_get_value(self):
+        evm.set_current_account(test_account)
+
+        checksum_contract_address = w3.toChecksumAddress(shared.contract_address)
+        #test storage
+        args = {'from': shared.eth_address,'to': checksum_contract_address}
+
+        logs = Greeter.functions.getValue().transact(args)
+        logger.info(logs)
+
+# [b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00', 
+# b'',
+# [b'\xf9\x8a\xea\xf5\xdb\xa7\x92gk\xdc\xec#\xe3a\xfc\x1b0\x1e\x95e', 
+# [
+#     b'\xf4\x8a\x1d\xc5~\xef\xa3\xdeD\x06\xe6_\xc0\xfc7{%\xd1\x00\xbd\x06B\x92\x01\xa0\x1a\x9e\x8e\x0e\x1d\x07s'
+# ], 
+# b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xaa\xbb\xcc\xdd\xee'
+# ]
+
 
         values = eth.get_all_values(shared.contract_address)
         logger.info(values)
@@ -487,6 +529,7 @@ class EVMTestCase(BaseTestCase):
 
     @on_test
     def test_check_chain_id(self):
+        # evm.set_chain_id(2)
         args = {'chainid': 2}
         r = eosapi.push_action(main_account, 'setchainid', args, {main_account:'active'})
         print('++++console:', r['processed']['action_traces'][0]['console'])
@@ -497,7 +540,7 @@ class EVMTestCase(BaseTestCase):
                 'to': w3.toChecksumAddress(shared.main_eth_address),
                 'value': 1000,
                 'gas': 2000000,
-                'gasPrice': 234567897654321,
+                'gasPrice': 1,
                 'nonce': 0,
                 'chainId': 1
         }
@@ -505,20 +548,22 @@ class EVMTestCase(BaseTestCase):
             w3.eth.sendTransaction(transaction)
         except Exception as e:
             e = json.loads(e.response)
+            logger.info(e['error']['details'][0]['message'])
             assert e['error']['details'][0]['message'] == "assertion failure with message: bad chain id!"
 
         time.sleep(0.5)
+        evm.set_chain_id(1)
         args = {'chainid': 1}
         r = eosapi.push_action(main_account, 'setchainid', args, {main_account:'active'})
         print('++++console:', r['processed']['action_traces'][0]['console'])
         print(r['processed']['elapsed'])
-
+        logger.info(shared.main_eth_address)
         transaction = {
                 'from':shared.eth_address,
                 'to': w3.toChecksumAddress(shared.main_eth_address),
-                'value': 1000,
+                'value': 1,
                 'gas': 2000000,
-                'gasPrice': 234567897654321,
+                'gasPrice': 2,
                 'nonce': 0,
                 'chainId': 1
         }
@@ -672,6 +717,7 @@ Greeter = load_contract('sol/greeter.sol', 'Greeter')
 Tester = load_contract('sol/tester.sol', 'Tester')
 Callee = load_contract('sol/callee.sol', 'Callee')
 Empty = load_contract('sol/empty.sol', 'Empty')
+PayableConstructor = load_contract('sol/payableconstructor.sol', 'PayableConstructor')
 
 shared = ShareValues()
 
