@@ -49,6 +49,15 @@
         {"name":"code",    "type":"bytes"}
        ]
     },{
+      "name": "ethcodecache",
+      "base": "",
+      "fields": [
+        {"name":"index",   "type":"uint64"},
+        {"name":"address", "type":"checksum160"},
+        {"name":"code",    "type":"bytes"}
+        {"name":"version", "type":"int64"}
+       ]
+    },{
       "name": "global",
       "base": "",
       "fields": [
@@ -175,6 +184,12 @@
       },{
           "name": "ethcode",
           "type": "ethcode",
+          "index_type": "i64",
+          "key_names": [],
+          "key_types": []
+      },{
+          "name": "ethcodecache",
+          "type": "ethcodecache",
           "index_type": "i64",
           "key_names": [],
           "key_types": []

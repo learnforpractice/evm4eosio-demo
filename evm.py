@@ -133,6 +133,14 @@ def sign_transaction_dict_with_eos_key(transaction_dict, chain_id, eos_pub_key):
     print("++++v, r, s:", v, r, s)
     return encoded_transaction
 
+def pack_transaction(trx):
+    global g_chain_id
+    trx = dissoc(trx, 'from')
+    trx = serializable_unsigned_transaction_from_dict(trx)
+    trx = encode_transaction(trx, vrs=(g_chain_id, 0, 0))
+    trx = trx.hex()
+    return trx
+
 def publish_evm_code(transaction, eos_pub_key = None):
     global g_chain_id
     global g_current_account
@@ -186,11 +194,12 @@ def publish_evm_code(transaction, eos_pub_key = None):
     ret = eosapi.push_action(contract_name, 'raw', args, {account_name:'active'})
     g_last_trx_ret = ret
     logs = ret['processed']['action_traces'][0]['console']
-    logger.info(logs)
+    # logger.info(logs)
     logger.info(('++++elapsed:', ret['processed']['elapsed']))
     try:
         logs = bytes.fromhex(logs)
         logs = rlp.decode(logs)
+        # logger.info(logs)
     except Exception as e:
         logger.error(logs)
         raise e
@@ -453,6 +462,19 @@ class Eth(object):
         ret = eosapi.get_table_rows(True, self.contract_account, creator, 'ethcode', index, index, index, 1)
         if ret['rows']:
             return ret['rows'][0]['code']
+        return ''
+
+    def get_code_cache(self, address):
+        address = normalize_address(address)
+        row = self.get_address_info(address)
+        if not row:
+            return ''
+        index = row['index']
+        creator = row['creator']
+        index = eosapi.n2s(index)
+        ret = eosapi.get_table_rows(False, self.contract_account, creator, 'ethcodecache', index, index, index, 1)
+        if ret['rows']:
+            return ret['rows'][0]
         return ''
 
 #     uint64_t code = current_receiver().value;

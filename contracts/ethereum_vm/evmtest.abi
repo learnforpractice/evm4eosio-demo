@@ -90,6 +90,15 @@
         {"name":"sender", "type":"bytes"}
        ]
     },{
+      "name": "ethraw2",
+      "base": "",
+      "fields": [
+        {"name":"trx", "type":"bytes"},
+        {"name":"sender", "type":"bytes"}
+        {"name":"counter", "type":"int64"}
+       ]
+    },
+    {
       "name": "addrinfo",
       "base": "",
       "fields": [
@@ -140,6 +149,10 @@
     },{
       "name": "raw",
       "type": "ethraw",
+      "ricardian_contract": ""
+    },{
+      "name": "raw2",
+      "type": "ethraw2",
       "ricardian_contract": ""
     },{
       "name": "getaddrinfo",
